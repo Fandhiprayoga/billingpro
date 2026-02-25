@@ -25,15 +25,17 @@
           </div>
 
           <div class="form-group">
-            <label for="group">Role <span class="text-danger">*</span></label>
-            <select class="form-control" id="group" name="group" required>
-              <option value="">-- Pilih Role --</option>
-              <?php foreach ($groups as $key => $group): ?>
-                <option value="<?= $key ?>" <?= old('group') === $key ? 'selected' : '' ?>>
-                  <?= esc($group['title']) ?> - <?= esc($group['description']) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
+            <label>Role <span class="text-danger">*</span> <small class="text-muted">(bisa pilih lebih dari satu)</small></label>
+            <?php foreach ($groups as $key => $group): ?>
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="group-<?= $key ?>" 
+                       name="groups[]" value="<?= $key ?>"
+                       <?= is_array(old('groups')) && in_array($key, old('groups')) ? 'checked' : '' ?>>
+                <label class="custom-control-label" for="group-<?= $key ?>">
+                  <strong><?= esc($group['title']) ?></strong> — <?= esc($group['description']) ?>
+                </label>
+              </div>
+            <?php endforeach; ?>
           </div>
 
           <div class="form-group text-right">

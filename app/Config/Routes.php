@@ -24,6 +24,9 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     // Dashboard
     $routes->get('dashboard', 'DashboardController::index');
 
+    // Switch Active Group
+    $routes->post('switch-group', 'GroupSwitchController::switch');
+
     // Profile
     $routes->get('profile', 'ProfileController::index');
     $routes->post('profile/update', 'ProfileController::update');

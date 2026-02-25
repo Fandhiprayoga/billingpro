@@ -4,7 +4,7 @@
       <div class="card-header">
         <h4>Daftar User</h4>
         <div class="card-header-action">
-          <?php if (auth()->user()->can('users.create')): ?>
+          <?php if (activeGroupCan('users.create')): ?>
           <a href="<?= base_url('admin/users/create') ?>" class="btn btn-primary">
             <i class="fas fa-plus"></i> Tambah User
           </a>
@@ -59,13 +59,13 @@
                     <?php endif; ?>
                   </td>
                   <td>
-                    <?php if (auth()->user()->can('users.edit')): ?>
+                    <?php if (activeGroupCan('users.edit')): ?>
                     <a href="<?= base_url('admin/users/edit/' . $user->id) ?>" class="btn btn-sm btn-info" title="Edit">
                       <i class="fas fa-edit"></i>
                     </a>
                     <?php endif; ?>
 
-                    <?php if (auth()->user()->can('users.delete') && $user->id !== auth()->id()): ?>
+                    <?php if (activeGroupCan('users.delete') && $user->id !== auth()->id()): ?>
                     <form action="<?= base_url('admin/users/delete/' . $user->id) ?>" method="post" class="d-inline"
                           onsubmit="return confirm('Yakin ingin menghapus user ini?')">
                       <?= csrf_field() ?>

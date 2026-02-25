@@ -5,7 +5,6 @@ namespace App\Filters;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use CodeIgniter\Shield\Entities\User;
 
 /**
  * Permission Filter - Memeriksa apakah user memiliki permission tertentu
@@ -26,12 +25,9 @@ class PermissionFilter implements FilterInterface
             return;
         }
 
-        /** @var User $user */
-        $user = auth()->user();
-
-        // Cek apakah user memiliki salah satu permission yang dibutuhkan
+        // Cek apakah active group memiliki salah satu permission yang dibutuhkan
         foreach ($arguments as $permission) {
-            if ($user->can($permission)) {
+            if (activeGroupCan($permission)) {
                 return;
             }
         }

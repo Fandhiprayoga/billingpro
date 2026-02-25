@@ -60,7 +60,7 @@ class UserController extends BaseController
             'username' => 'required|min_length[3]|max_length[30]|is_unique[users.username]',
             'email'    => 'required|valid_email|is_unique[auth_identities.secret]',
             'password' => 'required|min_length[8]',
-            'group'    => 'required',
+            'groups'   => 'required',
         ];
 
         if (! $this->validate($rules)) {
@@ -79,8 +79,15 @@ class UserController extends BaseController
         $users->save($user);
         $user = $users->findById($users->getInsertID());
 
-        // Assign group/role
-        $user->addGroup($this->request->getPost('group'));
+        // Assign groups/roles (multi-group support)
+        $groups = $this->request->getPost('groups');
+        if (is_array($groups)) {
+            foreach ($groups as $group) {
+                $user->addGroup($group);
+            }
+        } else {
+            $user->addGroup($groups);
+        }
 
         return redirect()->to('/admin/users')->with('success', 'User berhasil ditambahkan.');
     }
@@ -140,14 +147,21 @@ class UserController extends BaseController
 
         $this->userModel->save($user);
 
-        // Update group jika ada
-        $group = $this->request->getPost('group');
-        if ($group) {
+        // Update groups jika ada (multi-group support)
+        $groups = $this->request->getPost('groups');
+        if (! empty($groups)) {
             // Hapus semua group lama
             foreach ($user->getGroups() as $oldGroup) {
                 $user->removeGroup($oldGroup);
             }
-            $user->addGroup($group);
+            // Assign semua group baru
+            if (is_array($groups)) {
+                foreach ($groups as $group) {
+                    $user->addGroup($group);
+                }
+            } else {
+                $user->addGroup($groups);
+            }
         }
 
         return redirect()->to('/admin/users')->with('success', 'User berhasil diperbarui.');
@@ -185,15 +199,21 @@ class UserController extends BaseController
             return redirect()->to('/admin/users')->with('error', 'User tidak ditemukan.');
         }
 
-        $group = $this->request->getPost('group');
+        $groups = $this->request->getPost('groups');
 
         // Hapus semua group lama
         foreach ($user->getGroups() as $oldGroup) {
             $user->removeGroup($oldGroup);
         }
 
-        // Assign group baru
-        $user->addGroup($group);
+        // Assign groups baru (multi-group support)
+        if (is_array($groups)) {
+            foreach ($groups as $group) {
+                $user->addGroup($group);
+            }
+        } else {
+            $user->addGroup($groups);
+        }
 
         return redirect()->to('/admin/users')->with('success', 'Role user berhasil diperbarui.');
     }

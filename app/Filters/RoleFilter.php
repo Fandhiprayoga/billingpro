@@ -5,7 +5,6 @@ namespace App\Filters;
 use CodeIgniter\Filters\FilterInterface;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
-use CodeIgniter\Shield\Entities\User;
 
 /**
  * Role Filter - Memeriksa apakah user memiliki role/group yang sesuai
@@ -26,14 +25,9 @@ class RoleFilter implements FilterInterface
             return;
         }
 
-        /** @var User $user */
-        $user = auth()->user();
-
-        // Cek apakah user memiliki salah satu role yang diizinkan
-        foreach ($arguments as $group) {
-            if ($user->inGroup($group)) {
-                return;
-            }
+        // Cek apakah active group termasuk salah satu role yang diizinkan
+        if (activeGroupIs(...$arguments)) {
+            return;
         }
 
         // Jika tidak memiliki role yang sesuai

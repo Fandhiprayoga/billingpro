@@ -36,19 +36,19 @@ function isDropdownActive(array $paths): string {
         <a class="nav-link" href="<?= base_url('dashboard') ?>"><i class="fas fa-fire"></i> <span>Dashboard</span></a>
       </li>
 
-      <!-- Admin Menu (hanya untuk yang punya akses admin) -->
-      <?php if ($currentUser->can('admin.access')): ?>
+      <!-- Admin Menu (hanya untuk active group yang punya akses admin) -->
+      <?php if (activeGroupCan('admin.access')): ?>
       <li class="menu-header">Administrasi</li>
 
       <!-- User Management -->
-      <?php if ($currentUser->can('users.list')): ?>
+      <?php if (activeGroupCan('users.list')): ?>
       <li class="<?= isMenuActive('admin/users') ?>">
         <a class="nav-link" href="<?= base_url('admin/users') ?>"><i class="fas fa-users"></i> <span>Manajemen User</span></a>
       </li>
       <?php endif; ?>
 
       <!-- Role Management (superadmin only) -->
-      <?php if ($currentUser->inGroup('superadmin')): ?>
+      <?php if (activeGroupIs('superadmin')): ?>
       <li class="nav-item dropdown <?= isDropdownActive(['admin/roles']) ?>">
         <a href="#" class="nav-link has-dropdown"><i class="fas fa-user-shield"></i> <span>Role & Permission</span></a>
         <ul class="dropdown-menu">
@@ -63,7 +63,7 @@ function isDropdownActive(array $paths): string {
       <?php endif; ?>
 
       <!-- Settings -->
-      <?php if ($currentUser->can('admin.settings')): ?>
+      <?php if (activeGroupCan('admin.settings')): ?>
       <li class="<?= isMenuActive('admin/settings') ?>">
         <a class="nav-link" href="<?= base_url('admin/settings') ?>"><i class="fas fa-cog"></i> <span>Pengaturan</span></a>
       </li>

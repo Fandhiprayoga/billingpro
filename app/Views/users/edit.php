@@ -26,17 +26,19 @@
             <small class="form-text text-muted">Kosongkan jika tidak ingin mengubah password. Minimal 8 karakter.</small>
           </div>
 
-          <?php if (auth()->user()->can('users.manage-roles')): ?>
+          <?php if (activeGroupCan('users.manage-roles')): ?>
           <div class="form-group">
-            <label for="group">Role</label>
-            <select class="form-control" id="group" name="group">
-              <option value="">-- Pilih Role --</option>
-              <?php foreach ($groups as $key => $group): ?>
-                <option value="<?= $key ?>" <?= in_array($key, $userGroups) ? 'selected' : '' ?>>
-                  <?= esc($group['title']) ?> - <?= esc($group['description']) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
+            <label>Role <small class="text-muted">(bisa pilih lebih dari satu)</small></label>
+            <?php foreach ($groups as $key => $group): ?>
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="group-<?= $key ?>"
+                       name="groups[]" value="<?= $key ?>"
+                       <?= in_array($key, $userGroups) ? 'checked' : '' ?>>
+                <label class="custom-control-label" for="group-<?= $key ?>">
+                  <strong><?= esc($group['title']) ?></strong> — <?= esc($group['description']) ?>
+                </label>
+              </div>
+            <?php endforeach; ?>
           </div>
           <?php endif; ?>
 

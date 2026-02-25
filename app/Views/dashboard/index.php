@@ -1,12 +1,17 @@
 <?php
 $currentUser = auth()->user();
 $groups = $currentUser->getGroups();
-$groupLabel = !empty($groups) ? ucfirst($groups[0]) : 'User';
+$groupLabel = activeGroupTitle();
 ?>
 
 <h2 class="section-title">Selamat Datang, <?= esc($currentUser->username) ?>!</h2>
-<p class="section-lead">Anda login sebagai <strong><?= $groupLabel ?></strong>.</p>
+<p class="section-lead">Anda login sebagai <strong><?= $groupLabel ?></strong>.
+<?php if (count($groups) > 1): ?>
+  <small class="text-muted">(Memiliki <?= count($groups) ?> role. Gunakan switcher di navbar untuk beralih.)</small>
+<?php endif; ?>
+</p>
 
+<?php if (activeGroupCan('admin.access')): ?>
 <div class="row">
   <div class="col-lg-3 col-md-6 col-sm-6 col-12">
     <div class="card card-statistic-1">
@@ -72,6 +77,7 @@ $groupLabel = !empty($groups) ? ucfirst($groups[0]) : 'User';
     </div>
   </div>
 </div>
+<?php endif; ?>
 
 <div class="row">
   <div class="col-12 col-md-6">
@@ -94,7 +100,11 @@ $groupLabel = !empty($groups) ? ucfirst($groups[0]) : 'User';
               <th>Role</th>
               <td>
                 <?php foreach ($groups as $group): ?>
-                  <span class="badge badge-primary"><?= ucfirst($group) ?></span>
+                  <?php if ($group === activeGroup()): ?>
+                    <span class="badge badge-success" title="Role aktif"><?= ucfirst($group) ?> ✓</span>
+                  <?php else: ?>
+                    <span class="badge badge-secondary"><?= ucfirst($group) ?></span>
+                  <?php endif; ?>
                 <?php endforeach; ?>
               </td>
             </tr>
@@ -115,7 +125,7 @@ $groupLabel = !empty($groups) ? ucfirst($groups[0]) : 'User';
       </div>
       <div class="card-body">
         <div class="row">
-          <?php if ($currentUser->can('users.list')): ?>
+          <?php if (activeGroupCan('users.list')): ?>
           <div class="col-6 mb-3">
             <a href="<?= base_url('admin/users') ?>" class="btn btn-primary btn-block">
               <i class="fas fa-users"></i><br>Manajemen User
@@ -123,7 +133,7 @@ $groupLabel = !empty($groups) ? ucfirst($groups[0]) : 'User';
           </div>
           <?php endif; ?>
 
-          <?php if ($currentUser->inGroup('superadmin')): ?>
+          <?php if (activeGroupIs('superadmin')): ?>
           <div class="col-6 mb-3">
             <a href="<?= base_url('admin/roles') ?>" class="btn btn-danger btn-block">
               <i class="fas fa-user-shield"></i><br>Role & Permission
@@ -137,7 +147,7 @@ $groupLabel = !empty($groups) ? ucfirst($groups[0]) : 'User';
             </a>
           </div>
 
-          <?php if ($currentUser->can('admin.settings')): ?>
+          <?php if (activeGroupCan('admin.settings')): ?>
           <div class="col-6 mb-3">
             <a href="<?= base_url('admin/settings') ?>" class="btn btn-warning btn-block">
               <i class="fas fa-cog"></i><br>Pengaturan
