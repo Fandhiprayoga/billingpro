@@ -23,10 +23,10 @@ function isDropdownActive(array $paths): string {
 <div class="main-sidebar sidebar-style-1">
   <aside id="sidebar-wrapper">
     <div class="sidebar-brand">
-      <a href="<?= base_url('dashboard') ?>">CI4 RBAC</a>
+      <a href="<?= base_url('dashboard') ?>"><?= esc(setting('App.siteName') ?? 'CI4 RBAC') ?></a>
     </div>
     <div class="sidebar-brand sidebar-brand-sm">
-      <a href="<?= base_url('dashboard') ?>">C4</a>
+      <a href="<?= base_url('dashboard') ?>"><?= esc(setting('App.siteNameShort') ?? 'C4') ?></a>
     </div>
     <ul class="sidebar-menu">
 

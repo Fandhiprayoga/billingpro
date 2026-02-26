@@ -15,6 +15,9 @@ service('auth')->routes($routes);
 // Public Routes
 // ---------------------------------------------------------------
 $routes->get('/', 'AuthController::login');
+$routes->get('maintenance', static function () {
+    return view('errors/maintenance');
+});
 
 // ---------------------------------------------------------------
 // Protected Routes (require login)
@@ -54,7 +57,11 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         });
 
         // Settings
-        $routes->get('settings', 'SettingController::index', ['filter' => 'permission:admin.settings']);
-        $routes->post('settings/update', 'SettingController::update', ['filter' => 'permission:admin.settings']);
+        $routes->group('settings', ['filter' => 'permission:admin.settings'], static function ($routes) {
+            $routes->get('/', 'SettingController::index');
+            $routes->post('update/general', 'SettingController::updateGeneral');
+            $routes->post('update/auth', 'SettingController::updateAuth');
+            $routes->post('update/mail', 'SettingController::updateMail');
+        });
     });
 });

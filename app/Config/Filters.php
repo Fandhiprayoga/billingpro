@@ -4,6 +4,7 @@ namespace Config;
 
 use App\Filters\RoleFilter;
 use App\Filters\PermissionFilter;
+use App\Filters\MaintenanceFilter;
 use CodeIgniter\Config\Filters as BaseFilters;
 use CodeIgniter\Filters\Cors;
 use CodeIgniter\Filters\CSRF;
@@ -42,6 +43,7 @@ class Filters extends BaseFilters
         'group'         => GroupFilter::class,
         'role'          => RoleFilter::class,
         'permission'    => PermissionFilter::class,
+        'maintenance'   => MaintenanceFilter::class,
     ];
 
     /**
@@ -80,6 +82,7 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
+            'maintenance',
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',
