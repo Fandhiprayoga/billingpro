@@ -13,6 +13,11 @@ Boilerplate project CodeIgniter 4 dengan **CodeIgniter Shield** untuk autentikas
 - ✅ Pengaturan Sistem
 - ✅ Filter berdasarkan Role dan Permission
 - ✅ Dynamic Sidebar berdasarkan permission user
+- ✅ Modul Licensing & Billing (Plans, Orders, Licenses)
+- ✅ Pembayaran Manual (upload bukti bayar + admin approval)
+- ✅ Auto-generate License Key (20 karakter unik)
+- ✅ API Endpoint untuk POS external (activate & check license)
+- ✅ Payment Service Layer (siap integrasi Payment Gateway)
 
 ## Roles Default
 
@@ -64,6 +69,7 @@ php spark migrate --all
 
 ```bash
 php spark db:seed UserSeeder
+php spark db:seed PlanSeeder
 ```
 
 ### 7. Jalankan Server
@@ -99,13 +105,36 @@ app/
 │   ├── UserController.php    # CRUD User
 │   ├── RoleController.php    # View Roles & Permissions
 │   ├── ProfileController.php
-│   └── SettingController.php
+│   ├── SettingController.php
+│   ├── PlanController.php    # CRUD Paket Lisensi (Admin)
+│   ├── OrderController.php   # Order + approval + bukti bayar (Admin)
+│   ├── LicenseController.php # Manajemen Lisensi (Admin)
+│   ├── UserOrderController.php   # Order & pembayaran (User biasa)
+│   ├── UserLicenseController.php # Lisensi saya (User biasa)
+│   └── Api/
+│       └── LicenseApiController.php  # API untuk POS external
 ├── Database/
+│   ├── Migrations/
+│   │   ├── *_CreatePlansTable.php
+│   │   ├── *_CreateOrdersTable.php
+│   │   ├── *_CreatePaymentConfirmationsTable.php
+│   │   └── *_CreateLicensesTable.php
 │   └── Seeds/
-│       └── UserSeeder.php    # Seeder user default
+│       ├── UserSeeder.php    # Seeder user default
+│       └── PlanSeeder.php    # Seeder paket lisensi default
 ├── Filters/
 │   ├── RoleFilter.php        # Filter berdasarkan role
 │   └── PermissionFilter.php  # Filter berdasarkan permission
+├── Libraries/
+│   └── Payment/
+│       ├── PaymentHandlerInterface.php  # Interface payment gateway
+│       ├── ManualPaymentHandler.php     # Handler pembayaran manual
+│       └── PaymentService.php           # Service utama (Strategy Pattern)
+├── Models/
+│   ├── PlanModel.php         # Model paket lisensi
+│   ├── OrderModel.php        # Model order
+│   ├── PaymentConfirmationModel.php  # Model konfirmasi pembayaran
+│   └── LicenseModel.php      # Model lisensi
 └── Views/
     ├── layouts/
     │   ├── app.php           # Layout utama dashboard
@@ -130,6 +159,26 @@ app/
     │   └── index.php
     └── settings/
         └── index.php
+    ├── plans/                # Views paket lisensi
+    │   ├── index.php
+    │   ├── create.php
+    │   └── edit.php
+    ├── orders/               # Views order & pembayaran
+    │   ├── index.php
+    │   ├── create.php
+    │   ├── view.php
+    │   └── upload_confirmation.php
+    ├── licenses/             # Views lisensi (Admin)
+    │   ├── index.php
+    │   └── view.php
+    └── user_billing/         # Views billing (User biasa)
+        ├── plans.php
+        ├── orders.php
+        ├── order_create.php
+        ├── order_view.php
+        ├── upload_confirmation.php
+        ├── licenses.php
+        └── license_view.php
 public/
 └── assets/                   # Asset template Stisla
     ├── css/
@@ -440,6 +489,303 @@ Edit file `app/Views/partials/sidebar.php`, tambahkan di dalam section **Adminis
 | 7 | `app/Views/partials/sidebar.php` | Menu baru dibungkus `$currentUser->can()` |
 
 > **Prinsip utama:** Permission didaftarkan dulu → assign ke role di matrix → gunakan filter di route → cek di view untuk tampilkan/sembunyikan elemen UI.
+
+---
+
+## Modul Licensing & Billing
+
+Modul ini menangani seluruh alur penjualan lisensi POS, mulai dari pembuatan paket, pembuatan order, pembayaran manual, hingga generate license key otomatis.
+
+### Alur Kerja (Flow)
+
+```
+User pilih Plan → Buat Order → Upload Bukti Bayar → Admin Review
+    → Approve → License Key otomatis di-generate (20 karakter)
+    → Reject → Order dibatalkan
+```
+
+### Database Schema
+
+| Tabel | Deskripsi |
+|-------|-----------|
+| `plans` | Paket lisensi (nama, harga, durasi, fitur) |
+| `orders` | Order pembelian (terkait user & plan, status, payment method) |
+| `payment_confirmations` | Bukti pembayaran manual (bank, rekening, bukti transfer) |
+| `licenses` | Lisensi yang di-generate (license_key 20 char, device locking) |
+
+### Permissions
+
+| Permission | Deskripsi |
+|-----------|-----------|
+| `plans.list` | Melihat daftar paket |
+| `plans.create` | Membuat paket baru |
+| `plans.edit` | Mengedit paket |
+| `plans.delete` | Menghapus paket |
+| `orders.list` | Melihat daftar order |
+| `orders.create` | Membuat order baru |
+| `orders.view` | Melihat detail order |
+| `orders.approve` | Menyetujui order (generate lisensi) |
+| `orders.reject` | Menolak order |
+| `licenses.list` | Melihat daftar lisensi |
+| `licenses.view` | Melihat detail lisensi |
+| `licenses.revoke` | Mencabut lisensi |
+| `payments.list` | Melihat konfirmasi pembayaran |
+| `payments.review` | Mereview konfirmasi pembayaran |
+
+### Akses Berdasarkan Role
+
+Modul billing memisahkan akses admin dan user biasa melalui controller & route terpisah:
+
+| Fitur | Admin/Superadmin | Manager | User |
+|-------|-----------------|---------|------|
+| CRUD Paket Lisensi | ✅ | ❌ (hanya lihat) | ❌ |
+| Lihat semua order | ✅ | ✅ | ❌ |
+| Approve/Reject order | ✅ | ❌ | ❌ |
+| Revoke lisensi | ✅ | ❌ | ❌ |
+| Buat order sendiri | — | — | ✅ |
+| Upload bukti bayar | — | — | ✅ |
+| Lihat order sendiri | — | — | ✅ |
+| Lihat lisensi sendiri | — | — | ✅ |
+| Browse paket lisensi | — | — | ✅ |
+
+#### Route Admin vs User
+
+| Route | Controller | Role | Deskripsi |
+|-------|-----------|------|-----------|
+| `/admin/plans/*` | `PlanController` | Admin | CRUD paket lisensi |
+| `/admin/orders/*` | `OrderController` | Admin | Kelola semua order |
+| `/admin/licenses/*` | `LicenseController` | Admin | Kelola semua lisensi |
+| `/plans` | `UserOrderController::plans` | User | Lihat paket tersedia |
+| `/my-orders` | `UserOrderController::index` | User | Lihat order sendiri |
+| `/my-orders/create` | `UserOrderController::create` | User | Buat order baru |
+| `/my-orders/view/:id` | `UserOrderController::view` | User | Detail order (milik sendiri) |
+| `/my-orders/upload-confirmation/:id` | `UserOrderController::uploadConfirmation` | User | Upload bukti bayar |
+| `/my-licenses` | `UserLicenseController::index` | User | Lihat lisensi sendiri |
+| `/my-licenses/view/:id` | `UserLicenseController::view` | User | Detail lisensi (milik sendiri) |
+
+> **Penting:** Controller user (`UserOrderController`, `UserLicenseController`) memfilter semua query berdasarkan `auth()->id()` sehingga user hanya bisa melihat data miliknya sendiri.
+
+### Paket Default (Seeder)
+
+| Paket | Harga | Durasi |
+|-------|-------|--------|
+| Starter | Rp 99.000 | 30 hari |
+| Professional | Rp 249.000 | 30 hari |
+| Enterprise | Rp 499.000 | 30 hari |
+| Enterprise Yearly | Rp 4.990.000 | 365 hari |
+
+---
+
+## API Endpoint untuk POS External
+
+Dua endpoint publik (tanpa session/login) untuk digunakan oleh aplikasi POS luar.
+
+### POST `/api/license/activate`
+
+Aktivasi lisensi dan lock ke device tertentu.
+
+**Request:**
+
+```json
+{
+  "license_key": "ABCDE12345FGHIJ67890",
+  "device_id": "POS-DEVICE-001"
+}
+```
+
+**Response (sukses):**
+
+```json
+{
+  "status": "success",
+  "message": "Lisensi berhasil diaktivasi.",
+  "data": {
+    "license_key": "ABCDE12345FGHIJ67890",
+    "plan": "Professional",
+    "device_id": "POS-DEVICE-001",
+    "activated_at": "2026-02-27 10:30:00",
+    "expires_at": "2026-03-29 10:30:00",
+    "status": "active"
+  }
+}
+```
+
+**Response (error):**
+
+| HTTP Code | Kondisi |
+|-----------|---------|
+| `400` | `license_key` atau `device_id` kosong |
+| `404` | Lisensi tidak ditemukan |
+| `403` | Lisensi tidak aktif / expired / sudah di-lock ke device lain |
+
+### POST `/api/license/check`
+
+Cek status dan masa aktif lisensi.
+
+**Request:**
+
+```json
+{
+  "license_key": "ABCDE12345FGHIJ67890",
+  "device_id": "POS-DEVICE-001"
+}
+```
+
+**Response (sukses):**
+
+```json
+{
+  "status": "success",
+  "message": "Data lisensi ditemukan.",
+  "data": {
+    "license_key": "ABCDE12345FGHIJ67890",
+    "plan": "Professional",
+    "device_id": "POS-DEVICE-001",
+    "activated_at": "2026-02-27 10:30:00",
+    "expires_at": "2026-03-29 10:30:00",
+    "status": "active",
+    "is_active": true,
+    "days_remaining": 30
+  }
+}
+```
+
+---
+
+## Arsitektur Payment Service (Future-Proofing)
+
+Sistem pembayaran dibangun menggunakan **Strategy Pattern** agar mudah menambahkan payment gateway baru (Midtrans, Xendit, dll.) tanpa mengubah struktur tabel `orders`.
+
+### Struktur File
+
+```
+app/Libraries/Payment/
+├── PaymentHandlerInterface.php   # Interface (kontrak)
+├── ManualPaymentHandler.php      # Handler pembayaran manual
+└── PaymentService.php            # Service utama (registry)
+```
+
+### Cara Kerja
+
+```
+PaymentService
+├── registerHandler(ManualPaymentHandler)    ← sudah aktif
+├── registerHandler(MidtransPaymentHandler)  ← tambahkan nanti
+└── registerHandler(XenditPaymentHandler)    ← tambahkan nanti
+```
+
+`PaymentService` memilih handler yang tepat berdasarkan kolom `payment_method` di tabel `orders`. Tidak perlu mengubah tabel ataupun controller.
+
+### Menambahkan Payment Gateway Baru (Contoh: Midtrans)
+
+#### Langkah 1 — Buat Handler
+
+Buat file `app/Libraries/Payment/MidtransPaymentHandler.php`:
+
+```php
+<?php
+
+namespace App\Libraries\Payment;
+
+class MidtransPaymentHandler implements PaymentHandlerInterface
+{
+    public function getMethod(): string
+    {
+        return 'midtrans';
+    }
+
+    public function processPayment(object $order, array $data = []): array
+    {
+        // Panggil Midtrans Snap API untuk buat transaksi
+        // Simpan payment_reference (transaction_id) ke order
+
+        $snapToken = $this->createSnapToken($order);
+
+        return [
+            'success' => true,
+            'message' => 'Silakan selesaikan pembayaran.',
+            'data'    => [
+                'snap_token'  => $snapToken,
+                'redirect_url' => 'https://app.midtrans.com/snap/v2/vtweb/' . $snapToken,
+            ],
+        ];
+    }
+
+    public function verifyPayment(object $order, array $data = []): array
+    {
+        // Verifikasi callback/notification dari Midtrans
+        // Update status order jika valid
+
+        $transactionStatus = $data['transaction_status'] ?? '';
+
+        return [
+            'success' => $transactionStatus === 'settlement',
+            'message' => 'Status: ' . $transactionStatus,
+            'data'    => ['status' => $transactionStatus],
+        ];
+    }
+
+    public function getPaymentStatus(object $order): string
+    {
+        // Cek status transaksi ke Midtrans API
+        return 'pending';
+    }
+
+    private function createSnapToken(object $order): string
+    {
+        // Implementasi Midtrans Snap API
+        // Gunakan library midtrans/midtrans-php
+
+        return 'snap-token-placeholder';
+    }
+}
+```
+
+#### Langkah 2 — Daftarkan di PaymentService
+
+Edit file `app/Libraries/Payment/PaymentService.php`, di constructor:
+
+```php
+public function __construct()
+{
+    $this->orderModel   = new OrderModel();
+    $this->licenseModel = new LicenseModel();
+
+    // Register handlers
+    $this->registerHandler(new ManualPaymentHandler());
+    $this->registerHandler(new MidtransPaymentHandler());  // ← tambahkan
+}
+```
+
+#### Langkah 3 — Buat Order dengan Method Baru
+
+Di controller atau service, cukup ubah parameter `payment_method`:
+
+```php
+$paymentService->createOrder($userId, $planId, 'midtrans');
+```
+
+#### Langkah 4 — (Opsional) Tambahkan Callback Route
+
+```php
+// di Routes.php
+$routes->group('api', static function ($routes) {
+    $routes->post('payment/midtrans/callback', 'Api\PaymentCallbackController::midtrans');
+});
+```
+
+### Tabel Orders — Kolom untuk Gateway
+
+Tabel `orders` sudah menyediakan kolom yang siap pakai:
+
+| Kolom | Kegunaan |
+|-------|----------|
+| `payment_method` | Identifier handler: `manual`, `midtrans`, `xendit` |
+| `payment_reference` | ID transaksi dari gateway (snap_token, invoice_id, dll.) |
+| `paid_at` | Timestamp pembayaran berhasil |
+| `status` | `pending` → `awaiting_confirmation` → `paid` / `cancelled` |
+
+> **Prinsip:** Logika pembayaran terisolasi di masing-masing handler. Controller dan tabel tetap sama. Cukup `registerHandler()` untuk menambah gateway baru.
 
 ---
 

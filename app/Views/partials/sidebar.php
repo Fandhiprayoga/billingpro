@@ -68,6 +68,54 @@ function isDropdownActive(array $paths): string {
         <a class="nav-link" href="<?= base_url('admin/settings') ?>"><i class="fas fa-cog"></i> <span>Pengaturan</span></a>
       </li>
       <?php endif; ?>
+
+      <!-- Licensing & Billing -->
+      <?php if (activeGroupCan('plans.list') || activeGroupCan('orders.list') || activeGroupCan('licenses.list')): ?>
+      <li class="menu-header">Licensing & Billing</li>
+
+      <?php if (activeGroupCan('plans.list')): ?>
+      <li class="<?= isMenuActive('admin/plans') ?>">
+        <a class="nav-link" href="<?= base_url('admin/plans') ?>"><i class="fas fa-box"></i> <span>Paket Lisensi</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('orders.list')): ?>
+      <li class="<?= isMenuActive('admin/orders') ?>">
+        <a class="nav-link" href="<?= base_url('admin/orders') ?>"><i class="fas fa-shopping-cart"></i> <span>Order</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('licenses.list')): ?>
+      <li class="<?= isMenuActive('admin/licenses') ?>">
+        <a class="nav-link" href="<?= base_url('admin/licenses') ?>"><i class="fas fa-key"></i> <span>Lisensi</span></a>
+      </li>
+      <?php endif; ?>
+      <?php endif; ?>
+      <?php endif; ?>
+
+      <!-- User Billing Menu (untuk user biasa yang BUKAN admin) -->
+      <?php if (!activeGroupCan('admin.access')): ?>
+        <?php if (activeGroupCan('plans.list') || activeGroupCan('orders.list') || activeGroupCan('licenses.list')): ?>
+        <li class="menu-header">Layanan</li>
+
+        <?php if (activeGroupCan('plans.list')): ?>
+        <li class="<?= isMenuActive('plans') && !str_contains($currentUrl, 'admin') ? 'active' : '' ?>">
+          <a class="nav-link" href="<?= base_url('plans') ?>"><i class="fas fa-box"></i> <span>Paket Lisensi</span></a>
+        </li>
+        <?php endif; ?>
+
+        <?php if (activeGroupCan('orders.list')): ?>
+        <li class="<?= isMenuActive('my-orders') ? 'active' : '' ?>">
+          <a class="nav-link" href="<?= base_url('my-orders') ?>"><i class="fas fa-shopping-cart"></i> <span>Order Saya</span></a>
+        </li>
+        <?php endif; ?>
+
+        <?php if (activeGroupCan('licenses.list')): ?>
+        <li class="<?= isMenuActive('my-licenses') ? 'active' : '' ?>">
+          <a class="nav-link" href="<?= base_url('my-licenses') ?>"><i class="fas fa-key"></i> <span>Lisensi Saya</span></a>
+        </li>
+        <?php endif; ?>
+        <?php endif; ?>
       <?php endif; ?>
 
       <!-- Profil -->

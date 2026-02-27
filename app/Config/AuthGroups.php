@@ -69,6 +69,28 @@ class AuthGroups extends ShieldAuthGroups
         // Reports
         'reports.view'        => 'Dapat melihat laporan',
         'reports.export'      => 'Dapat mengekspor laporan',
+
+        // Plans
+        'plans.list'          => 'Dapat melihat daftar paket',
+        'plans.create'        => 'Dapat membuat paket baru',
+        'plans.edit'          => 'Dapat mengedit paket',
+        'plans.delete'        => 'Dapat menghapus paket',
+
+        // Orders
+        'orders.list'         => 'Dapat melihat daftar order',
+        'orders.create'       => 'Dapat membuat order baru',
+        'orders.view'         => 'Dapat melihat detail order',
+        'orders.approve'      => 'Dapat menyetujui order',
+        'orders.reject'       => 'Dapat menolak order',
+
+        // Licenses
+        'licenses.list'       => 'Dapat melihat daftar lisensi',
+        'licenses.view'       => 'Dapat melihat detail lisensi',
+        'licenses.revoke'     => 'Dapat mencabut lisensi',
+
+        // Payment Confirmations
+        'payments.list'       => 'Dapat melihat konfirmasi pembayaran',
+        'payments.review'     => 'Dapat mereview konfirmasi pembayaran',
     ];
 
     /**
@@ -83,6 +105,10 @@ class AuthGroups extends ShieldAuthGroups
             'roles.*',
             'dashboard.*',
             'reports.*',
+            'plans.*',
+            'orders.*',
+            'licenses.*',
+            'payments.*',
         ],
         'admin' => [
             'admin.access',
@@ -92,15 +118,31 @@ class AuthGroups extends ShieldAuthGroups
             'users.delete',
             'dashboard.*',
             'reports.*',
+            'plans.*',
+            'orders.*',
+            'licenses.*',
+            'payments.*',
         ],
         'manager' => [
             'admin.access',
             'users.list',
             'dashboard.*',
             'reports.*',
+            'plans.list',
+            'orders.list',
+            'orders.view',
+            'licenses.list',
+            'licenses.view',
+            'payments.list',
         ],
         'user' => [
             'dashboard.access',
+            'orders.create',
+            'orders.list',
+            'orders.view',
+            'licenses.list',
+            'licenses.view',
+            'plans.list',
         ],
     ];
 }
