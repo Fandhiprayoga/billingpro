@@ -88,7 +88,12 @@ $(function() {
         }
       },
       { data: 'license_key',
-        render: function(data) { return '<code>' + $('<span>').text(data).html() + '</code>'; }
+        render: function(data) {
+          var escaped = $('<span>').text(data).html();
+          return '<code>' + escaped + '</code> ' +
+            '<button type="button" class="btn btn-sm btn-outline-primary py-0 px-1 btn-copy-key" data-key="' + escaped + '" title="Salin">' +
+            '<i class="fas fa-copy"></i></button>';
+        }
       },
       { data: 'username',
         render: function(data) { return $('<span>').text(data || '-').html(); }
@@ -155,6 +160,26 @@ $(function() {
   $('#btn-reset').on('click', function() {
     $('#filter-status').val('').trigger('change');
     $('#filter-device').val('').trigger('change');
+  });
+
+  // Copy license key
+  $(document).on('click', '.btn-copy-key', function() {
+    var key = $(this).data('key');
+    navigator.clipboard.writeText(key).then(function() {
+      if (typeof iziToast !== 'undefined') {
+        iziToast.success({ title: 'Berhasil', message: 'License key berhasil disalin!', position: 'topRight' });
+      } else {
+        alert('License key berhasil disalin!');
+      }
+    }).catch(function() {
+      var el = document.createElement('textarea');
+      el.value = key;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      alert('License key berhasil disalin: ' + key);
+    });
   });
 });
 </script>

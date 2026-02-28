@@ -73,9 +73,10 @@ class LicenseController extends BaseController
 
     public function view(int $id)
     {
-        $license = $this->licenseModel->select('licenses.*, plans.name as plan_name, plans.duration_days, users.username, users.email, orders.order_number')
+        $license = $this->licenseModel->select('licenses.*, plans.name as plan_name, plans.duration_days, users.username, auth_identities.secret as email, orders.order_number')
             ->join('plans', 'plans.id = licenses.plan_id', 'left')
             ->join('users', 'users.id = licenses.user_id', 'left')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = \'email_password\'', 'left')
             ->join('orders', 'orders.id = licenses.order_id', 'left')
             ->where('licenses.id', $id)
             ->first();

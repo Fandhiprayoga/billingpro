@@ -250,6 +250,6 @@ class OrderController extends BaseController
             return redirect()->back()->with('error', $result['message']);
         }
 
-        return redirect()->to('/admin/orders')->with('success', $result['message']);
+        return redirect()->to('/admin/orders/view/' . $orderNumber)->with('success', $result['message']);
     }
 }

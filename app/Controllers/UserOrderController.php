@@ -158,12 +158,20 @@ class UserOrderController extends BaseController
         $licenseModel = new LicenseModel();
         $license = $licenseModel->where('order_id', $order->id)->first();
 
+        // Info rekening tujuan transfer
+        $bankInfo = [
+            'bank_name'       => setting('App.bankName') ?? '',
+            'account_number'  => setting('App.bankAccountNumber') ?? '',
+            'account_name'    => setting('App.bankAccountName') ?? '',
+        ];
+
         $data = [
             'title'         => 'Detail Order',
             'page_title'    => 'Detail Order #' . $order->order_number,
             'order'         => $order,
             'confirmations' => $confirmations,
             'license'       => $license,
+            'bankInfo'      => $bankInfo,
         ];
 
         return $this->renderView('user_billing/order_view', $data);
@@ -184,10 +192,17 @@ class UserOrderController extends BaseController
             return redirect()->to('/my-orders/view/' . $orderNumber)->with('error', 'Order tidak dalam status yang bisa diupload bukti bayar.');
         }
 
+        $bankInfo = [
+            'bank_name'       => setting('App.bankName') ?? '',
+            'account_number'  => setting('App.bankAccountNumber') ?? '',
+            'account_name'    => setting('App.bankAccountName') ?? '',
+        ];
+
         $data = [
             'title'      => 'Upload Bukti Bayar',
             'page_title' => 'Upload Bukti Pembayaran',
             'order'      => $order,
+            'bankInfo'   => $bankInfo,
         ];
 
         return $this->renderView('user_billing/upload_confirmation', $data);

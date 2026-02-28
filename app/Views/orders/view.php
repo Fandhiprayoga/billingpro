@@ -11,7 +11,7 @@ $statusLabel = match($order->status) {
   'pending'                => 'Pending',
   'awaiting_confirmation'  => 'Menunggu Review',
   'paid'                   => 'Lunas',
-  'cancelled'              => 'Dibatalkan',
+  'cancelled'              => !empty($order->admin_notes) ? 'Ditolak' : 'Dibatalkan',
   'expired'                => 'Kadaluarsa',
   default                  => $order->status,
 };
@@ -59,10 +59,28 @@ $statusLabel = match($order->status) {
             <td><?= date('d/m/Y H:i', strtotime($order->paid_at)) ?></td>
           </tr>
           <?php endif; ?>
+          <?php if (!empty($order->rejected_at)): ?>
+          <tr>
+            <td><strong>Tanggal Ditolak</strong></td>
+            <td><span class="text-danger"><?= date('d/m/Y H:i', strtotime($order->rejected_at)) ?></span></td>
+          </tr>
+          <?php endif; ?>
           <?php if (!empty($order->notes)): ?>
           <tr>
-            <td><strong>Catatan</strong></td>
+            <td><strong>Catatan User</strong></td>
             <td><?= esc($order->notes) ?></td>
+          </tr>
+          <?php endif; ?>
+          <?php if (!empty($order->admin_notes)): ?>
+          <tr>
+            <td><strong>Catatan Admin</strong></td>
+            <td>
+              <?php if ($order->status === 'cancelled'): ?>
+                <span class="text-danger"><i class="fas fa-times-circle"></i> <?= esc($order->admin_notes) ?></span>
+              <?php else: ?>
+                <?= esc($order->admin_notes) ?>
+              <?php endif; ?>
+            </td>
           </tr>
           <?php endif; ?>
         </table>
@@ -204,22 +222,30 @@ $statusLabel = match($order->status) {
         </div>
       </div>
       <?php endif; ?>
+    <?php endif; ?>
 
+    <?php if (in_array($order->status, ['pending', 'awaiting_confirmation', 'paid'])): ?>
       <?php if (activeGroupCan('orders.reject')): ?>
       <div class="card">
         <div class="card-header">
           <h4>Tolak Order</h4>
         </div>
         <div class="card-body">
+          <?php if ($order->status === 'paid'): ?>
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <small>Order ini sudah <strong>Lunas</strong>. Menolak order ini akan <strong>mencabut lisensi</strong> yang sudah di-generate.</small>
+          </div>
+          <?php endif; ?>
           <form action="<?= base_url('admin/orders/reject/' . $order->order_number) ?>" method="post"
-                onsubmit="return confirm('Yakin ingin menolak order ini?')">
+                onsubmit="return confirm('<?= $order->status === 'paid' ? 'PERHATIAN: Order sudah lunas! Menolak akan mencabut lisensi. Yakin ingin melanjutkan?' : 'Yakin ingin menolak order ini?' ?>')">
             <?= csrf_field() ?>
             <div class="form-group">
-              <label for="reason">Alasan Penolakan</label>
+              <label for="reason">Alasan Penolakan <span class="text-danger">*</span></label>
               <textarea class="form-control" id="reason" name="reason" rows="2" required></textarea>
             </div>
             <button type="submit" class="btn btn-danger btn-block">
-              <i class="fas fa-times"></i> Tolak Order
+              <i class="fas fa-times"></i> <?= $order->status === 'paid' ? 'Tolak & Cabut Lisensi' : 'Tolak Order' ?>
             </button>
           </form>
         </div>

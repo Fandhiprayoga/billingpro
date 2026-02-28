@@ -144,14 +144,22 @@ class PaymentService
             return ['success' => false, 'message' => 'Order tidak ditemukan.'];
         }
 
-        if ($order->status === 'paid') {
-            return ['success' => false, 'message' => 'Order sudah disetujui sebelumnya.'];
+        // Hanya order pending/awaiting_confirmation yang bisa di-approve
+        if (! in_array($order->status, ['pending', 'awaiting_confirmation'])) {
+            $msg = match($order->status) {
+                'paid'      => 'Order sudah disetujui sebelumnya.',
+                'cancelled' => 'Order sudah dibatalkan/ditolak. Tidak bisa disetujui.',
+                'expired'   => 'Order sudah expired.',
+                default     => 'Order tidak dalam status yang bisa disetujui.',
+            };
+            return ['success' => false, 'message' => $msg];
         }
 
         // Update order status to paid
         $this->orderModel->update($orderId, [
-            'status'  => 'paid',
-            'paid_at' => date('Y-m-d H:i:s'),
+            'status'      => 'paid',
+            'paid_at'     => date('Y-m-d H:i:s'),
+            'admin_notes' => $adminNotes,
         ]);
 
         // Approve the payment confirmation if manual
@@ -207,20 +215,38 @@ class PaymentService
             return ['success' => false, 'message' => 'Order tidak ditemukan.'];
         }
 
+        // Hanya order yang belum cancelled/expired yang bisa ditolak
+        if (in_array($order->status, ['cancelled', 'expired'])) {
+            return ['success' => false, 'message' => 'Order sudah dibatalkan/expired. Tidak bisa ditolak lagi.'];
+        }
+
+        // Jika order sudah paid, revoke lisensi terkait
+        if ($order->status === 'paid') {
+            $existingLicense = $this->licenseModel->where('order_id', $orderId)->first();
+            if ($existingLicense) {
+                $this->licenseModel->update($existingLicense->id, [
+                    'status' => 'revoked',
+                ]);
+            }
+        }
+
+        // Update order status ke cancelled, simpan reason di admin_notes (BUKAN overwrite notes user)
         $this->orderModel->update($orderId, [
-            'status' => 'cancelled',
-            'notes'  => $reason,
+            'status'      => 'cancelled',
+            'admin_notes' => $reason,
+            'rejected_at' => date('Y-m-d H:i:s'),
+            'paid_at'     => null, // reset paid_at jika sebelumnya sudah paid
         ]);
 
-        // Reject payment confirmation if exists
+        // Reject semua payment confirmation yang masih pending
         if ($order->payment_method === 'manual') {
             $confirmationModel = new \App\Models\PaymentConfirmationModel();
-            $confirmation = $confirmationModel
+            $confirmations = $confirmationModel
                 ->where('order_id', $orderId)
                 ->where('status', 'pending')
-                ->first();
+                ->findAll();
 
-            if ($confirmation) {
+            foreach ($confirmations as $confirmation) {
                 $this->setHandler('manual');
                 $this->getHandler()->verifyPayment($order, [
                     'confirmation_id' => $confirmation->id,
@@ -233,7 +259,9 @@ class PaymentService
 
         return [
             'success' => true,
-            'message' => 'Order ditolak.',
+            'message' => $order->status === 'paid'
+                ? 'Order ditolak dan lisensi terkait telah dicabut.'
+                : 'Order ditolak.',
         ];
     }
 }

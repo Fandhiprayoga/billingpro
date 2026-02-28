@@ -15,6 +15,9 @@ class SettingController extends BaseController
         'App.siteVersion'     => '1.0.0',
         'App.favicon'         => '',
         'App.loginLogo'       => '',
+        'App.bankName'        => '',
+        'App.bankAccountNumber' => '',
+        'App.bankAccountName' => '',
         'App.maintenanceMode' => '0',
         'App.maintenanceMsg'  => 'Sistem sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.',
         'App.defaultRole'     => 'user',
@@ -60,8 +63,11 @@ class SettingController extends BaseController
             'site_description' => 'permit_empty|max_length[255]',
             'site_footer'      => 'permit_empty|max_length[100]',
             'site_version'     => 'permit_empty|max_length[20]',
-            'favicon'          => 'permit_empty|uploaded[favicon]|max_size[favicon,512]|ext_in[favicon,ico,png,svg]',
-            'login_logo'       => 'permit_empty|uploaded[login_logo]|max_size[login_logo,2048]|ext_in[login_logo,png,jpg,jpeg,svg,webp]',
+            'favicon'             => 'permit_empty|uploaded[favicon]|max_size[favicon,512]|ext_in[favicon,ico,png,svg]',
+            'login_logo'          => 'permit_empty|uploaded[login_logo]|max_size[login_logo,2048]|ext_in[login_logo,png,jpg,jpeg,svg,webp]',
+            'bank_name'           => 'permit_empty|max_length[100]',
+            'bank_account_number' => 'permit_empty|max_length[50]',
+            'bank_account_name'   => 'permit_empty|max_length[100]',
         ];
 
         if (! $this->validate($rules)) {
@@ -73,6 +79,11 @@ class SettingController extends BaseController
         setting('App.siteDescription', $this->request->getPost('site_description'));
         setting('App.siteFooter', $this->request->getPost('site_footer'));
         setting('App.siteVersion', $this->request->getPost('site_version'));
+
+        // Payment destination settings
+        setting('App.bankName', $this->request->getPost('bank_name') ?? '');
+        setting('App.bankAccountNumber', $this->request->getPost('bank_account_number') ?? '');
+        setting('App.bankAccountName', $this->request->getPost('bank_account_name') ?? '');
 
         // Handle favicon upload
         $favicon = $this->request->getFile('favicon');

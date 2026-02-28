@@ -146,6 +146,40 @@ $s = function (string $key) use ($settings) {
                 </div>
               </div>
 
+              <hr>
+              <h6 class="text-muted mb-3"><i class="fas fa-university"></i> Rekening Tujuan Transfer</h6>
+              <p class="text-muted small mb-3">Informasi rekening ini akan ditampilkan kepada user saat melakukan pembayaran order.</p>
+
+              <div class="form-group row">
+                <label for="bank_name" class="col-sm-3 col-form-label">Nama Bank</label>
+                <div class="col-sm-6">
+                  <input type="text" class="form-control" id="bank_name" name="bank_name"
+                         value="<?= old('bank_name', $s('App.bankName')) ?>"
+                         placeholder="Contoh: BCA, BNI, Mandiri, BRI">
+                  <small class="form-text text-muted">Nama bank tujuan transfer pembayaran.</small>
+                </div>
+              </div>
+
+              <div class="form-group row">
+                <label for="bank_account_number" class="col-sm-3 col-form-label">No. Rekening</label>
+                <div class="col-sm-6">
+                  <input type="text" class="form-control" id="bank_account_number" name="bank_account_number"
+                         value="<?= old('bank_account_number', $s('App.bankAccountNumber')) ?>"
+                         placeholder="Contoh: 1234567890">
+                  <small class="form-text text-muted">Nomor rekening tujuan transfer.</small>
+                </div>
+              </div>
+
+              <div class="form-group row">
+                <label for="bank_account_name" class="col-sm-3 col-form-label">Atas Nama</label>
+                <div class="col-sm-6">
+                  <input type="text" class="form-control" id="bank_account_name" name="bank_account_name"
+                         value="<?= old('bank_account_name', $s('App.bankAccountName')) ?>"
+                         placeholder="Contoh: PT. Billing Pro Indonesia">
+                  <small class="form-text text-muted">Nama pemilik rekening.</small>
+                </div>
+              </div>
+
               <div class="form-group row">
                 <div class="col-sm-9 offset-sm-3">
                   <button type="submit" class="btn btn-primary">

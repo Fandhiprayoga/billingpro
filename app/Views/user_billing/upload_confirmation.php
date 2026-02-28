@@ -10,6 +10,26 @@
           <strong>Jumlah yang harus dibayar:</strong> <span class="h5">Rp <?= number_format($order->amount, 0, ',', '.') ?></span>
         </div>
 
+        <?php if (!empty($bankInfo['bank_name'])): ?>
+        <div class="alert alert-primary">
+          <strong><i class="fas fa-university"></i> Transfer ke Rekening Berikut:</strong>
+          <table class="table table-sm table-borderless mb-0 mt-2">
+            <tr>
+              <td width="110"><strong>Bank</strong></td>
+              <td><span class="font-weight-bold"><?= esc($bankInfo['bank_name']) ?></span></td>
+            </tr>
+            <tr>
+              <td><strong>No. Rekening</strong></td>
+              <td><code class="h6 mb-0"><?= esc($bankInfo['account_number']) ?></code></td>
+            </tr>
+            <tr>
+              <td><strong>Atas Nama</strong></td>
+              <td><strong><?= esc($bankInfo['account_name']) ?></strong></td>
+            </tr>
+          </table>
+        </div>
+        <?php endif; ?>
+
         <div class="alert alert-light">
           <strong><i class="fas fa-info-circle"></i> Instruksi Pembayaran:</strong>
           <ol class="mb-0 mt-2">

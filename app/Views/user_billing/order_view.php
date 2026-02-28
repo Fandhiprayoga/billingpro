@@ -11,7 +11,7 @@ $statusLabel = match($order->status) {
   'pending'                => 'Menunggu Pembayaran',
   'awaiting_confirmation'  => 'Menunggu Verifikasi',
   'paid'                   => 'Lunas',
-  'cancelled'              => 'Dibatalkan',
+  'cancelled'              => !empty($order->admin_notes) ? 'Ditolak Admin' : 'Dibatalkan',
   'expired'                => 'Kadaluarsa',
   default                  => $order->status,
 };
@@ -55,10 +55,22 @@ $statusLabel = match($order->status) {
             <td><?= date('d/m/Y H:i', strtotime($order->paid_at)) ?></td>
           </tr>
           <?php endif; ?>
+          <?php if (!empty($order->rejected_at)): ?>
+          <tr>
+            <td><strong>Tanggal Ditolak</strong></td>
+            <td><span class="text-danger"><?= date('d/m/Y H:i', strtotime($order->rejected_at)) ?></span></td>
+          </tr>
+          <?php endif; ?>
           <?php if (!empty($order->notes)): ?>
           <tr>
             <td><strong>Catatan</strong></td>
             <td><?= esc($order->notes) ?></td>
+          </tr>
+          <?php endif; ?>
+          <?php if (!empty($order->admin_notes) && $order->status === 'cancelled'): ?>
+          <tr>
+            <td><strong>Alasan Penolakan</strong></td>
+            <td><span class="text-danger"><i class="fas fa-times-circle"></i> <?= esc($order->admin_notes) ?></span></td>
           </tr>
           <?php endif; ?>
         </table>
@@ -218,6 +230,42 @@ $statusLabel = match($order->status) {
 
   <!-- Action Sidebar -->
   <div class="col-md-4">
+    <!-- Informasi Rekening Tujuan Transfer -->
+    <?php if (in_array($order->status, ['pending', 'awaiting_confirmation']) && !empty($bankInfo['bank_name'])): ?>
+    <div class="card card-primary">
+      <div class="card-header">
+        <h4><i class="fas fa-university"></i> Tujuan Transfer</h4>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-light border mb-3" style="background: #f8f9ff;">
+          <table class="table table-sm table-borderless mb-0">
+            <tr>
+              <td width="100"><strong>Bank</strong></td>
+              <td><span class="font-weight-bold text-primary"><?= esc($bankInfo['bank_name']) ?></span></td>
+            </tr>
+            <tr>
+              <td><strong>No. Rek.</strong></td>
+              <td>
+                <code class="h6" id="bankAccountNumber"><?= esc($bankInfo['account_number']) ?></code>
+                <button type="button" class="btn btn-sm btn-outline-primary ml-1" onclick="copyAccountNumber()" title="Salin No. Rekening">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Atas Nama</strong></td>
+              <td><strong><?= esc($bankInfo['account_name']) ?></strong></td>
+            </tr>
+          </table>
+        </div>
+        <div class="alert alert-info mb-0">
+          <i class="fas fa-info-circle"></i>
+          <small>Transfer sesuai jumlah tagihan <strong>Rp <?= number_format($order->amount, 0, ',', '.') ?></strong>, lalu upload bukti bayar.</small>
+        </div>
+      </div>
+    </div>
+    <?php endif; ?>
+
     <?php if ($order->status === 'pending'): ?>
     <div class="card">
       <div class="card-header">
@@ -263,3 +311,21 @@ $statusLabel = match($order->status) {
     </div>
   </div>
 </div>
+
+<script>
+function copyAccountNumber() {
+  var text = document.getElementById('bankAccountNumber').innerText;
+  navigator.clipboard.writeText(text).then(function() {
+    iziToast.success({ title: 'Berhasil', message: 'No. rekening berhasil disalin!', position: 'topRight' });
+  }).catch(function() {
+    // Fallback
+    var el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    alert('No. rekening berhasil disalin: ' + text);
+  });
+}
+</script>

@@ -11,7 +11,7 @@ class OrderModel extends Model
     protected $allowedFields = [
         'order_number', 'user_id', 'plan_id', 'amount',
         'status', 'payment_method', 'payment_reference',
-        'paid_at', 'notes',
+        'paid_at', 'rejected_at', 'notes', 'admin_notes',
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'object';

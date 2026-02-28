@@ -15,7 +15,11 @@ $licBadge = match($license->status) {
       </div>
       <div class="card-body">
         <div class="text-center mb-4">
-          <h3 class="text-monospace"><?= esc($license->license_key) ?></h3>
+          <h3 class="text-monospace d-inline-block mb-1" id="licenseKeyText"><?= esc($license->license_key) ?></h3>
+          <button type="button" class="btn btn-outline-primary btn-sm ml-2" onclick="copyLicenseKey()" title="Salin License Key">
+            <i class="fas fa-copy"></i> Salin
+          </button>
+          <br>
           <span class="badge <?= $licBadge ?> badge-lg"><?= ucfirst($license->status) ?></span>
         </div>
 
@@ -97,3 +101,24 @@ $licBadge = match($license->status) {
     </div>
   </div>
 </div>
+
+<script>
+function copyLicenseKey() {
+  var key = document.getElementById('licenseKeyText').innerText;
+  navigator.clipboard.writeText(key).then(function() {
+    if (typeof iziToast !== 'undefined') {
+      iziToast.success({ title: 'Berhasil', message: 'License key berhasil disalin!', position: 'topRight' });
+    } else {
+      alert('License key berhasil disalin!');
+    }
+  }).catch(function() {
+    var el = document.createElement('textarea');
+    el.value = key;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    alert('License key berhasil disalin: ' + key);
+  });
+}
+</script>
