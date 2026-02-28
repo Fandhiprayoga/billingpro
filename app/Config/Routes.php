@@ -145,6 +145,16 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
 
         // API Documentation
         $routes->get('api-docs', 'ApiDocController::index', ['filter' => 'permission:api-docs.view']);
+
+        // ---------------------------------------------------------------
+        // Reports
+        // ---------------------------------------------------------------
+        $routes->group('reports', ['filter' => 'permission:reports.view'], static function ($routes) {
+            $routes->get('revenue', 'ReportController::revenue');
+            $routes->get('revenue/ajax', 'ReportController::revenueAjax');
+            $routes->get('revenue/summary', 'ReportController::revenueSummary');
+            $routes->get('revenue/export', 'ReportController::revenueExport', ['filter' => 'permission:reports.export']);
+        });
     });
 
     // Serve uploaded files securely from writable/uploads

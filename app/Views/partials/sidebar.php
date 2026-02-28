@@ -103,6 +103,15 @@ function isDropdownActive(array $paths): string {
       </li>
       <?php endif; ?>
       <?php endif; ?>
+
+      <!-- Laporan -->
+      <?php if (activeGroupCan('reports.view')): ?>
+      <li class="menu-header">Laporan</li>
+      <li class="<?= isMenuActive('admin/reports/revenue') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('admin/reports/revenue') ?>"><i class="fas fa-chart-line"></i> <span>Laporan Pendapatan</span></a>
+      </li>
+      <?php endif; ?>
+
       <?php endif; ?>
 
       <!-- User Billing Menu (untuk user biasa yang BUKAN admin) -->
