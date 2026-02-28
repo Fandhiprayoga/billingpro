@@ -11,6 +11,7 @@ class LicenseModel extends Model
     protected $allowedFields = [
         'order_id', 'user_id', 'plan_id', 'license_key',
         'device_id', 'activated_at', 'expires_at', 'status',
+        'is_trial', 'trial_duration_days', 'trial_notes', 'created_by',
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'object';

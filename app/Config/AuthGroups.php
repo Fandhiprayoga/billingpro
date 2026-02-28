@@ -91,6 +91,12 @@ class AuthGroups extends ShieldAuthGroups
         // Payment Confirmations
         'payments.list'       => 'Dapat melihat konfirmasi pembayaran',
         'payments.review'     => 'Dapat mereview konfirmasi pembayaran',
+
+        // Trial Licenses
+        'trial-licenses.list'   => 'Dapat melihat daftar lisensi trial',
+        'trial-licenses.create' => 'Dapat membuat lisensi trial',
+        'trial-licenses.view'   => 'Dapat melihat detail lisensi trial',
+        'trial-licenses.revoke' => 'Dapat mencabut lisensi trial',
     ];
 
     /**
@@ -109,6 +115,7 @@ class AuthGroups extends ShieldAuthGroups
             'orders.*',
             'licenses.*',
             'payments.*',
+            'trial-licenses.*',
         ],
         'admin' => [
             'admin.access',
@@ -122,6 +129,7 @@ class AuthGroups extends ShieldAuthGroups
             'orders.*',
             'licenses.*',
             'payments.*',
+            'trial-licenses.*',
         ],
         'manager' => [
             'admin.access',
@@ -134,6 +142,8 @@ class AuthGroups extends ShieldAuthGroups
             'licenses.list',
             'licenses.view',
             'payments.list',
+            'trial-licenses.list',
+            'trial-licenses.view',
         ],
         'user' => [
             'dashboard.access',

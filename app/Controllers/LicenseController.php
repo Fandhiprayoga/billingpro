@@ -34,7 +34,8 @@ class LicenseController extends BaseController
             ->select('licenses.*, plans.name as plan_name, users.username, orders.order_number')
             ->join('plans', 'plans.id = licenses.plan_id', 'left')
             ->join('users', 'users.id = licenses.user_id', 'left')
-            ->join('orders', 'orders.id = licenses.order_id', 'left');
+            ->join('orders', 'orders.id = licenses.order_id', 'left')
+            ->where('licenses.is_trial', 0);
 
         // Filter: status (default = active)
         $status = $this->request->getGet('status');

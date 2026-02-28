@@ -30,18 +30,20 @@ class DashboardController extends BaseController
                 'total'                 => $orderModel->countAllResults(),
             ];
 
-            // Admin: total lisensi aktif
+            // Admin: total lisensi aktif (tanpa trial)
             $activeLicenses = $licenseModel->where('licenses.status', 'active')
                 ->where('licenses.expires_at >=', date('Y-m-d H:i:s'))
+                ->where('licenses.is_trial', 0)
                 ->countAllResults();
 
-            // Admin: lisensi yang akan expired dalam 7 hari
+            // Admin: lisensi yang akan expired dalam 7 hari (tanpa trial)
             $expiringLicenses = $licenseModel
                 ->select('licenses.*, plans.name as plan_name, users.username, orders.order_number')
                 ->join('plans', 'plans.id = licenses.plan_id', 'left')
                 ->join('users', 'users.id = licenses.user_id', 'left')
                 ->join('orders', 'orders.id = licenses.order_id', 'left')
                 ->where('licenses.status', 'active')
+                ->where('licenses.is_trial', 0)
                 ->where('licenses.expires_at >=', date('Y-m-d H:i:s'))
                 ->where('licenses.expires_at <=', date('Y-m-d H:i:s', strtotime('+7 days')))
                 ->orderBy('licenses.expires_at', 'ASC')
@@ -70,15 +72,17 @@ class DashboardController extends BaseController
             $activeLicenses = $licenseModel->where('licenses.user_id', $userId)
                 ->where('licenses.status', 'active')
                 ->where('licenses.expires_at >=', date('Y-m-d H:i:s'))
+                ->where('licenses.is_trial', 0)
                 ->countAllResults();
 
-            // User: lisensi yang akan expired dalam 14 hari
+            // User: lisensi yang akan expired dalam 14 hari (tanpa trial)
             $expiringLicenses = $licenseModel
                 ->select('licenses.*, plans.name as plan_name, orders.order_number')
                 ->join('plans', 'plans.id = licenses.plan_id', 'left')
                 ->join('orders', 'orders.id = licenses.order_id', 'left')
                 ->where('licenses.user_id', $userId)
                 ->where('licenses.status', 'active')
+                ->where('licenses.is_trial', 0)
                 ->where('licenses.expires_at >=', date('Y-m-d H:i:s'))
                 ->where('licenses.expires_at <=', date('Y-m-d H:i:s', strtotime('+14 days')))
                 ->orderBy('licenses.expires_at', 'ASC')

@@ -128,6 +128,16 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->get('view/(:num)', 'LicenseController::view/$1', ['filter' => 'permission:licenses.view']);
             $routes->post('revoke/(:num)', 'LicenseController::revoke/$1', ['filter' => 'permission:licenses.revoke']);
         });
+
+        // Trial License Management
+        $routes->group('trial-licenses', static function ($routes) {
+            $routes->get('/', 'TrialLicenseController::index', ['filter' => 'permission:trial-licenses.list']);
+            $routes->get('ajax', 'TrialLicenseController::ajax', ['filter' => 'permission:trial-licenses.list']);
+            $routes->get('create', 'TrialLicenseController::create', ['filter' => 'permission:trial-licenses.create']);
+            $routes->post('store', 'TrialLicenseController::store', ['filter' => 'permission:trial-licenses.create']);
+            $routes->get('view/(:num)', 'TrialLicenseController::view/$1', ['filter' => 'permission:trial-licenses.view']);
+            $routes->post('revoke/(:num)', 'TrialLicenseController::revoke/$1', ['filter' => 'permission:trial-licenses.revoke']);
+        });
     });
 
     // Serve uploaded files securely from writable/uploads

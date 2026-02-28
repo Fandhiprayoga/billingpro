@@ -86,8 +86,14 @@ function isDropdownActive(array $paths): string {
       <?php endif; ?>
 
       <?php if (activeGroupCan('licenses.list')): ?>
-      <li class="<?= isMenuActive('admin/licenses') ?>">
+      <li class="<?= isMenuActive('admin/licenses') && !str_contains($currentUrl, 'trial') ? 'active' : '' ?>">
         <a class="nav-link" href="<?= base_url('admin/licenses') ?>"><i class="fas fa-key"></i> <span>Lisensi</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php if (activeGroupCan('trial-licenses.list')): ?>
+      <li class="<?= isMenuActive('admin/trial-licenses') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('admin/trial-licenses') ?>"><i class="fas fa-flask"></i> <span>Lisensi Trial</span></a>
       </li>
       <?php endif; ?>
       <?php endif; ?>
