@@ -38,7 +38,7 @@ class DashboardController extends BaseController
 
             // Admin: lisensi yang akan expired dalam 7 hari (tanpa trial)
             $expiringLicenses = $licenseModel
-                ->select('licenses.*, plans.name as plan_name, users.username, orders.order_number')
+                ->select('licenses.*, licenses.uuid, plans.name as plan_name, users.username, orders.order_number')
                 ->join('plans', 'plans.id = licenses.plan_id', 'left')
                 ->join('users', 'users.id = licenses.user_id', 'left')
                 ->join('orders', 'orders.id = licenses.order_id', 'left')

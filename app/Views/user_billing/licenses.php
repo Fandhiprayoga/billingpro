@@ -40,7 +40,7 @@
                 <th>Device</th>
                 <th>Status</th>
                 <th>Berlaku Sampai</th>
-                <th width="60">Aksi</th>
+                <th width="80">Aksi</th>
               </tr>
             </thead>
           </table>
@@ -133,9 +133,27 @@ $(function() {
           return dateStr;
         }
       },
-      { data: 'id', orderable: false,
-        render: function(data) {
-          return '<a href="<?= base_url('my-licenses/view/') ?>' + data + '" class="btn btn-sm btn-info" title="Detail"><i class="fas fa-eye"></i></a>';
+      { data: null, orderable: false,
+        render: function(data, type, row) {
+          var now = new Date().getTime();
+          var exp = new Date(row.expires_at).getTime();
+          var status = row.status;
+          if (status === 'active' && exp < now) status = 'expired';
+          var isTrial = parseInt(row.is_trial) === 1;
+
+          var html = '<div class="dropdown d-inline">';
+          html += '<button class="btn btn-sm btn-primary dropdown-toggle" data-toggle="dropdown"><i class="fas fa-cog"></i></button>';
+          html += '<div class="dropdown-menu dropdown-menu-right">';
+          html += '<a class="dropdown-item" href="<?= base_url('my-licenses/view/') ?>' + row.uuid + '"><i class="fas fa-eye mr-2 text-info"></i>Detail</a>';
+          if (!isTrial && (status === 'active' || status === 'expired')) {
+            html += '<a class="dropdown-item" href="<?= base_url('my-licenses/renew/') ?>' + row.uuid + '"><i class="fas fa-sync-alt mr-2 text-success"></i>Perpanjang / Topup</a>';
+          }
+          if (!isTrial) {
+            html += '<div class="dropdown-divider"></div>';
+            html += '<a class="dropdown-item" href="<?= base_url('my-licenses/history/') ?>' + row.uuid + '"><i class="fas fa-history mr-2 text-secondary"></i>Riwayat Pembayaran</a>';
+          }
+          html += '</div></div>';
+          return html;
         }
       }
     ],

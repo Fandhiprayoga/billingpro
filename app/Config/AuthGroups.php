@@ -97,6 +97,9 @@ class AuthGroups extends ShieldAuthGroups
         'trial-licenses.create' => 'Dapat membuat lisensi trial',
         'trial-licenses.view'   => 'Dapat melihat detail lisensi trial',
         'trial-licenses.revoke' => 'Dapat mencabut lisensi trial',
+
+        // API Documentation
+        'api-docs.view'         => 'Dapat melihat dokumentasi API',
     ];
 
     /**
@@ -116,6 +119,7 @@ class AuthGroups extends ShieldAuthGroups
             'licenses.*',
             'payments.*',
             'trial-licenses.*',
+            'api-docs.*',
         ],
         'admin' => [
             'admin.access',
@@ -130,6 +134,7 @@ class AuthGroups extends ShieldAuthGroups
             'licenses.*',
             'payments.*',
             'trial-licenses.*',
+            'api-docs.*',
         ],
         'manager' => [
             'admin.access',
@@ -144,6 +149,7 @@ class AuthGroups extends ShieldAuthGroups
             'payments.list',
             'trial-licenses.list',
             'trial-licenses.view',
+            'api-docs.view',
         ],
         'user' => [
             'dashboard.access',

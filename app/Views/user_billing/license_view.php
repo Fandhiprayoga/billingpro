@@ -74,20 +74,6 @@ $licLabel = match($license->status) {
       </div>
     </div>
 
-    <?php if ($license->status === 'active' && !$isExpired && empty($license->device_id)): ?>
-    <div class="card">
-      <div class="card-header">
-        <h4>Cara Aktivasi</h4>
-      </div>
-      <div class="card-body">
-        <p>Gunakan license key di atas pada aplikasi POS Anda. Aplikasi akan otomatis mengaktivasi lisensi dan mengunci ke perangkat Anda.</p>
-        <p class="text-muted small mb-0">
-          <strong>API Endpoint:</strong> <code>POST <?= base_url('api/license/activate') ?></code><br>
-          <strong>Body:</strong> <code>{ "license_key": "<?= esc($license->license_key) ?>", "device_id": "YOUR_DEVICE_ID" }</code>
-        </p>
-      </div>
-    </div>
-    <?php endif; ?>
   </div>
 
   <div class="col-md-4">
@@ -104,7 +90,11 @@ $licLabel = match($license->status) {
       <div class="card-body text-center">
         <i class="fas fa-clock fa-3x mb-3"></i>
         <h5>Lisensi Expired</h5>
-        <a href="<?= base_url('plans') ?>" class="btn btn-light mt-2">Perpanjang Lisensi</a>
+        <?php if (!$license->is_trial): ?>
+          <a href="<?= base_url('my-licenses/renew/' . $license->uuid) ?>" class="btn btn-light mt-2">Perpanjang Lisensi</a>
+        <?php else: ?>
+          <a href="<?= base_url('plans') ?>" class="btn btn-light mt-2">Beli Lisensi Baru</a>
+        <?php endif; ?>
       </div>
     </div>
     <?php elseif ($license->status === 'revoked'): ?>
@@ -113,6 +103,22 @@ $licLabel = match($license->status) {
         <i class="fas fa-ban fa-3x mb-3"></i>
         <h5>Lisensi Dicabut</h5>
         <p class="small mb-0">Hubungi admin untuk informasi lebih lanjut.</p>
+      </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (!$license->is_trial): ?>
+    <div class="card">
+      <div class="card-header"><h4>Aksi</h4></div>
+      <div class="card-body">
+        <?php if (in_array($license->status, ['active', 'expired']) || $isExpired): ?>
+        <a href="<?= base_url('my-licenses/renew/' . $license->uuid) ?>" class="btn btn-success btn-block mb-2">
+          <i class="fas fa-sync-alt"></i> Perpanjang / Topup
+        </a>
+        <?php endif; ?>
+        <a href="<?= base_url('my-licenses/history/' . $license->uuid) ?>" class="btn btn-outline-info btn-block">
+          <i class="fas fa-history"></i> Riwayat Pembayaran
+        </a>
       </div>
     </div>
     <?php endif; ?>

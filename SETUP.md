@@ -16,7 +16,7 @@ Boilerplate project CodeIgniter 4 dengan **CodeIgniter Shield** untuk autentikas
 - ✅ Modul Licensing & Billing (Plans, Orders, Licenses)
 - ✅ Pembayaran Manual (upload bukti bayar + admin approval)
 - ✅ Auto-generate License Key (20 karakter unik)
-- ✅ API Endpoint untuk POS external (activate & check license)
+- ✅ API Endpoint untuk aplikasi external / POS / Web (activate & check license)
 - ✅ Payment Service Layer (siap integrasi Payment Gateway)
 
 ## Roles Default
@@ -112,7 +112,7 @@ app/
 │   ├── UserOrderController.php   # Order & pembayaran (User biasa)
 │   ├── UserLicenseController.php # Lisensi saya (User biasa)
 │   └── Api/
-│       └── LicenseApiController.php  # API untuk POS external
+│       └── LicenseApiController.php  # API untuk aplikasi external (POS / Web)
 ├── Database/
 │   ├── Migrations/
 │   │   ├── *_CreatePlansTable.php
@@ -511,7 +511,7 @@ User pilih Plan → Buat Order → Upload Bukti Bayar → Admin Review
 | `plans` | Paket lisensi (nama, harga, durasi, fitur) |
 | `orders` | Order pembelian (terkait user & plan, status, payment method) |
 | `payment_confirmations` | Bukti pembayaran manual (bank, rekening, bukti transfer) |
-| `licenses` | Lisensi yang di-generate (license_key 20 char, device locking) |
+| `licenses` | Lisensi yang di-generate (license_key 20 char, UUID, device locking opsional) |
 
 ### Permissions
 
@@ -576,15 +576,25 @@ Modul billing memisahkan akses admin dan user biasa melalui controller & route t
 
 ---
 
-## API Endpoint untuk POS External
+## API Endpoint untuk Aplikasi External
 
-Dua endpoint publik (tanpa session/login) untuk digunakan oleh aplikasi POS luar.
+Dua endpoint publik (tanpa session/login) untuk digunakan oleh aplikasi external (POS desktop maupun aplikasi web).
+
+> **Catatan:** Parameter `device_id` bersifat **opsional**. Untuk aplikasi web, cukup kirim `license_key` saja. Untuk POS desktop yang ingin device locking, kirim juga `device_id`.
 
 ### POST `/api/license/activate`
 
-Aktivasi lisensi dan lock ke device tertentu.
+Aktivasi lisensi. Jika `device_id` dikirim, lisensi akan di-lock ke device tersebut.
 
-**Request:**
+**Request (minimal — untuk aplikasi web):**
+
+```json
+{
+  "license_key": "ABCDE12345FGHIJ67890"
+}
+```
+
+**Request (dengan device locking — untuk POS desktop):**
 
 ```json
 {
@@ -602,7 +612,7 @@ Aktivasi lisensi dan lock ke device tertentu.
   "data": {
     "license_key": "ABCDE12345FGHIJ67890",
     "plan": "Professional",
-    "device_id": "POS-DEVICE-001",
+    "device_id": null,
     "activated_at": "2026-02-27 10:30:00",
     "expires_at": "2026-03-29 10:30:00",
     "status": "active"
@@ -610,19 +620,34 @@ Aktivasi lisensi dan lock ke device tertentu.
 }
 ```
 
+**Parameter:**
+
+| Parameter | Tipe | Wajib | Deskripsi |
+|-----------|------|-------|-----------|
+| `license_key` | string | **Ya** | License key 20 karakter |
+| `device_id` | string | Tidak | Identifier perangkat (opsional, untuk device locking) |
+
 **Response (error):**
 
 | HTTP Code | Kondisi |
 |-----------|---------|
-| `400` | `license_key` atau `device_id` kosong |
+| `400` | `license_key` kosong |
 | `404` | Lisensi tidak ditemukan |
 | `403` | Lisensi tidak aktif / expired / sudah di-lock ke device lain |
 
 ### POST `/api/license/check`
 
-Cek status dan masa aktif lisensi.
+Cek status dan masa aktif lisensi. Jika `device_id` dikirim dan lisensi sudah di-lock, akan divalidasi kecocokannya.
 
-**Request:**
+**Request (minimal — untuk aplikasi web):**
+
+```json
+{
+  "license_key": "ABCDE12345FGHIJ67890"
+}
+```
+
+**Request (dengan device check — untuk POS desktop):**
 
 ```json
 {
@@ -640,7 +665,7 @@ Cek status dan masa aktif lisensi.
   "data": {
     "license_key": "ABCDE12345FGHIJ67890",
     "plan": "Professional",
-    "device_id": "POS-DEVICE-001",
+    "device_id": null,
     "activated_at": "2026-02-27 10:30:00",
     "expires_at": "2026-03-29 10:30:00",
     "status": "active",
@@ -649,6 +674,13 @@ Cek status dan masa aktif lisensi.
   }
 }
 ```
+
+**Parameter:**
+
+| Parameter | Tipe | Wajib | Deskripsi |
+|-----------|------|-------|-----------|
+| `license_key` | string | **Ya** | License key 20 karakter |
+| `device_id` | string | Tidak | Device ID (opsional, divalidasi jika lisensi sudah di-lock) |
 
 ---
 

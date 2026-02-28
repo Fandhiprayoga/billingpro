@@ -76,7 +76,7 @@ class PaymentService
     /**
      * Create a new order.
      */
-    public function createOrder(int $userId, int $planId, string $paymentMethod = 'manual', ?string $notes = null): array
+    public function createOrder(int $userId, int $planId, string $paymentMethod = 'manual', ?string $notes = null, string $type = 'new', ?int $licenseId = null): array
     {
         $planModel = new \App\Models\PlanModel();
         $plan = $planModel->find($planId);
@@ -87,8 +87,10 @@ class PaymentService
 
         $orderData = [
             'order_number'   => $this->orderModel->generateOrderNumber(),
+            'type'           => $type,
             'user_id'        => $userId,
             'plan_id'        => $planId,
+            'license_id'     => $licenseId,
             'amount'         => $plan->price,
             'status'         => 'pending',
             'payment_method' => $paymentMethod,
@@ -182,6 +184,35 @@ class PaymentService
         }
 
         // Generate license
+        // Handle renewal — extend existing license instead of creating new one
+        if (($order->type ?? 'new') === 'renewal' && ! empty($order->license_id)) {
+            $existingLicense = $this->licenseModel->find($order->license_id);
+            if ($existingLicense) {
+                // If license still active, add duration on top of current expires_at
+                // If expired, start counting from now
+                $baseTime = ($existingLicense->status === 'active' && strtotime($existingLicense->expires_at) > time())
+                    ? strtotime($existingLicense->expires_at)
+                    : time();
+
+                $newExpiresAt = date('Y-m-d H:i:s', $baseTime + ($order->duration_days * 86400));
+
+                $this->licenseModel->update($existingLicense->id, [
+                    'expires_at' => $newExpiresAt,
+                    'status'     => 'active',
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Order perpanjangan disetujui. Masa aktif lisensi diperpanjang.',
+                    'data'    => [
+                        'license_key' => $existingLicense->license_key,
+                        'expires_at'  => $newExpiresAt,
+                    ],
+                ];
+            }
+        }
+
+        // New license — generate key and create
         $licenseKey = $this->licenseModel->generateLicenseKey();
         $expiresAt  = date('Y-m-d H:i:s', strtotime("+{$order->duration_days} days"));
 

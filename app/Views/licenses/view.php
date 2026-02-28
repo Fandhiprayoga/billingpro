@@ -81,7 +81,7 @@ $licBadge = match($license->status) {
     <?php if ($license->status === 'active' && activeGroupCan('licenses.revoke')): ?>
     <div class="card">
       <div class="card-body">
-        <form action="<?= base_url('admin/licenses/revoke/' . $license->id) ?>" method="post"
+        <form action="<?= base_url('admin/licenses/revoke/' . $license->uuid) ?>" method="post"
               onsubmit="return confirm('Yakin ingin mencabut lisensi ini? Aksi ini tidak bisa dibatalkan.')">
           <?= csrf_field() ?>
           <button type="submit" class="btn btn-danger btn-block">

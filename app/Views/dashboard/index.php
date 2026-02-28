@@ -53,7 +53,7 @@ $isAdmin = activeGroupCan('admin.access');
                 <td><span class="<?= $urgency ?>"><?= $daysLeft ?> hari</span></td>
                 <td>
                   <?php if ($isAdmin): ?>
-                    <a href="<?= base_url('admin/licenses/view/' . $lic->id) ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
+                    <a href="<?= base_url('admin/licenses/view/' . $lic->uuid) ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
                   <?php else: ?>
                     <a href="<?= base_url('my-orders/create?plan=' . $lic->plan_id) ?>" class="btn btn-sm btn-warning"><i class="fas fa-redo"></i> Perpanjang</a>
                   <?php endif; ?>

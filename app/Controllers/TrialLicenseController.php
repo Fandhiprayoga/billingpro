@@ -35,7 +35,7 @@ class TrialLicenseController extends BaseController
     {
         $db = \Config\Database::connect();
         $builder = $db->table('licenses')
-            ->select('licenses.*, users.username, 
+            ->select('licenses.*, licenses.uuid, users.username, 
                       creator.username as created_by_name')
             ->join('users', 'users.id = licenses.user_id', 'left')
             ->join('users as creator', 'creator.id = licenses.created_by', 'left')
@@ -143,7 +143,7 @@ class TrialLicenseController extends BaseController
     /**
      * Detail lisensi trial.
      */
-    public function view(int $id)
+    public function view(string $uuid)
     {
         $license = $this->licenseModel
             ->select('licenses.*, users.username, 
@@ -152,7 +152,7 @@ class TrialLicenseController extends BaseController
             ->join('users', 'users.id = licenses.user_id', 'left')
             ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = \'email_password\'', 'left')
             ->join('users as creator', 'creator.id = licenses.created_by', 'left')
-            ->where('licenses.id', $id)
+            ->where('licenses.uuid', $uuid)
             ->where('licenses.is_trial', 1)
             ->first();
 
@@ -172,10 +172,10 @@ class TrialLicenseController extends BaseController
     /**
      * Cabut lisensi trial.
      */
-    public function revoke(int $id)
+    public function revoke(string $uuid)
     {
         $license = $this->licenseModel
-            ->where('id', $id)
+            ->where('uuid', $uuid)
             ->where('is_trial', 1)
             ->first();
 
@@ -187,7 +187,7 @@ class TrialLicenseController extends BaseController
             return redirect()->to('/admin/trial-licenses')->with('error', 'Hanya lisensi aktif yang bisa dicabut.');
         }
 
-        $this->licenseModel->update($id, [
+        $this->licenseModel->update($license->id, [
             'status' => 'revoked',
         ]);
 

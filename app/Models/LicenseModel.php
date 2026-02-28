@@ -9,12 +9,45 @@ class LicenseModel extends Model
     protected $table         = 'licenses';
     protected $primaryKey    = 'id';
     protected $allowedFields = [
-        'order_id', 'user_id', 'plan_id', 'license_key',
+        'uuid', 'order_id', 'user_id', 'plan_id', 'license_key',
         'device_id', 'activated_at', 'expires_at', 'status',
         'is_trial', 'trial_duration_days', 'trial_notes', 'created_by',
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'object';
+
+    protected $beforeInsert = ['generateUuid'];
+
+    /**
+     * Auto-generate UUID v4 before insert.
+     */
+    protected function generateUuid(array $data): array
+    {
+        if (empty($data['data']['uuid'])) {
+            $data['data']['uuid'] = self::createUuid();
+        }
+        return $data;
+    }
+
+    /**
+     * Generate UUID v4.
+     */
+    public static function createUuid(): string
+    {
+        $data = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+    }
+
+    /**
+     * Find license by UUID.
+     */
+    public function findByUuid(string $uuid): ?object
+    {
+        return $this->where('uuid', $uuid)->first();
+    }
 
     /**
      * Generate a unique 20-character license key.

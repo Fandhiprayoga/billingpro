@@ -59,7 +59,10 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     $routes->group('my-licenses', static function ($routes) {
         $routes->get('/', 'UserLicenseController::index');
         $routes->get('ajax', 'UserLicenseController::ajax');
-        $routes->get('view/(:num)', 'UserLicenseController::view/$1');
+        $routes->get('view/(:segment)', 'UserLicenseController::view/$1');
+        $routes->get('renew/(:segment)', 'UserLicenseController::renew/$1');
+        $routes->post('store-renewal/(:segment)', 'UserLicenseController::storeRenewal/$1');
+        $routes->get('history/(:segment)', 'UserLicenseController::history/$1');
     });
 
     // ---------------------------------------------------------------
@@ -91,6 +94,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('update/general', 'SettingController::updateGeneral');
             $routes->post('update/auth', 'SettingController::updateAuth');
             $routes->post('update/mail', 'SettingController::updateMail');
+            $routes->post('delete-branding/(:segment)', 'SettingController::deleteBranding/$1');
         });
 
         // ---------------------------------------------------------------
@@ -125,8 +129,8 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         $routes->group('licenses', static function ($routes) {
             $routes->get('/', 'LicenseController::index', ['filter' => 'permission:licenses.list']);
             $routes->get('ajax', 'LicenseController::ajax', ['filter' => 'permission:licenses.list']);
-            $routes->get('view/(:num)', 'LicenseController::view/$1', ['filter' => 'permission:licenses.view']);
-            $routes->post('revoke/(:num)', 'LicenseController::revoke/$1', ['filter' => 'permission:licenses.revoke']);
+            $routes->get('view/(:segment)', 'LicenseController::view/$1', ['filter' => 'permission:licenses.view']);
+            $routes->post('revoke/(:segment)', 'LicenseController::revoke/$1', ['filter' => 'permission:licenses.revoke']);
         });
 
         // Trial License Management
@@ -135,9 +139,12 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->get('ajax', 'TrialLicenseController::ajax', ['filter' => 'permission:trial-licenses.list']);
             $routes->get('create', 'TrialLicenseController::create', ['filter' => 'permission:trial-licenses.create']);
             $routes->post('store', 'TrialLicenseController::store', ['filter' => 'permission:trial-licenses.create']);
-            $routes->get('view/(:num)', 'TrialLicenseController::view/$1', ['filter' => 'permission:trial-licenses.view']);
-            $routes->post('revoke/(:num)', 'TrialLicenseController::revoke/$1', ['filter' => 'permission:trial-licenses.revoke']);
+            $routes->get('view/(:segment)', 'TrialLicenseController::view/$1', ['filter' => 'permission:trial-licenses.view']);
+            $routes->post('revoke/(:segment)', 'TrialLicenseController::revoke/$1', ['filter' => 'permission:trial-licenses.revoke']);
         });
+
+        // API Documentation
+        $routes->get('api-docs', 'ApiDocController::index', ['filter' => 'permission:api-docs.view']);
     });
 
     // Serve uploaded files securely from writable/uploads

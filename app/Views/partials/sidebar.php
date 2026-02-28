@@ -96,6 +96,12 @@ function isDropdownActive(array $paths): string {
         <a class="nav-link" href="<?= base_url('admin/trial-licenses') ?>"><i class="fas fa-flask"></i> <span>Lisensi Trial</span></a>
       </li>
       <?php endif; ?>
+
+      <?php if (activeGroupCan('api-docs.view')): ?>
+      <li class="<?= isMenuActive('admin/api-docs') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('admin/api-docs') ?>"><i class="fas fa-book"></i> <span>Dokumentasi API</span></a>
+      </li>
+      <?php endif; ?>
       <?php endif; ?>
       <?php endif; ?>
 

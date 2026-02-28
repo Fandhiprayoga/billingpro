@@ -107,7 +107,10 @@ $s = function (string $key) use ($settings) {
                     <img src="<?= $faviconUrl ?>" alt="Favicon saat ini" id="favicon-preview"
                          style="width: 32px; height: 32px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 2px; background: #fff;" class="mr-3">
                     <?php if ($faviconPath): ?>
-                      <span class="badge badge-success"><i class="fas fa-check"></i> Sudah diatur</span>
+                      <span class="badge badge-success mr-2"><i class="fas fa-check"></i> Sudah diatur</span>
+                      <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 btn-delete-branding" data-type="favicon" title="Hapus & Kembali ke Default">
+                        <i class="fas fa-trash-alt"></i> Hapus
+                      </button>
                     <?php else: ?>
                       <span class="badge badge-secondary">Default</span>
                     <?php endif; ?>
@@ -132,7 +135,10 @@ $s = function (string $key) use ($settings) {
                     <img src="<?= $logoUrl ?>" alt="Logo login saat ini" id="logo-preview"
                          style="width: 80px; height: 80px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; padding: 4px; background: #fff;" class="mr-3">
                     <?php if ($logoPath): ?>
-                      <span class="badge badge-success"><i class="fas fa-check"></i> Sudah diatur</span>
+                      <span class="badge badge-success mr-2"><i class="fas fa-check"></i> Sudah diatur</span>
+                      <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 btn-delete-branding" data-type="login_logo" title="Hapus & Kembali ke Default">
+                        <i class="fas fa-trash-alt"></i> Hapus
+                      </button>
                     <?php else: ?>
                       <span class="badge badge-secondary">Default (Stisla)</span>
                     <?php endif; ?>
@@ -382,6 +388,21 @@ $(function() {
       };
       reader.readAsDataURL(this.files[0]);
     }
+  });
+
+  // Delete branding (favicon / logo) — submit via dynamic form to avoid nested form issue
+  $(document).on('click', '.btn-delete-branding', function() {
+    var type = $(this).data('type');
+    var label = type === 'favicon' ? 'favicon' : 'logo halaman login';
+    if (!confirm('Yakin ingin menghapus ' + label + ' dan kembali ke default?')) return;
+
+    var form = $('<form>', {
+      action: '<?= base_url('admin/settings/delete-branding/') ?>' + type,
+      method: 'post'
+    });
+    form.append($('<input>', { type: 'hidden', name: '<?= csrf_token() ?>', value: '<?= csrf_hash() ?>' }));
+    $('body').append(form);
+    form.submit();
   });
 });
 </script>

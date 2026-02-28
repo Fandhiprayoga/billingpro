@@ -132,10 +132,10 @@ $(function() {
         render: function(data, type, row) {
           var html = '';
           if (canView) {
-            html += '<a href="<?= base_url('admin/licenses/view/') ?>' + row.id + '" class="btn btn-sm btn-info" title="Detail"><i class="fas fa-eye"></i></a> ';
+            html += '<a href="<?= base_url('admin/licenses/view/') ?>' + row.uuid + '" class="btn btn-sm btn-info" title="Detail"><i class="fas fa-eye"></i></a> ';
           }
           if (canRevoke && row.status === 'active') {
-            html += '<form action="<?= base_url('admin/licenses/revoke/') ?>' + row.id + '" method="post" class="d-inline" onsubmit="return confirm(\'Yakin ingin mencabut lisensi ini?\')">';
+            html += '<form action="<?= base_url('admin/licenses/revoke/') ?>' + row.uuid + '" method="post" class="d-inline" onsubmit="return confirm(\'Yakin ingin mencabut lisensi ini?\')">'; 
             html += '<input type="hidden" name="' + csrfName + '" value="' + csrfHash + '">';
             html += '<button type="submit" class="btn btn-sm btn-danger" title="Cabut Lisensi"><i class="fas fa-ban"></i></button></form>';
           }

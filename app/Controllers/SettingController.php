@@ -191,4 +191,34 @@ class SettingController extends BaseController
 
         return $result;
     }
+
+    /**
+     * Hapus branding (favicon / login logo) dan kembalikan ke default.
+     */
+    public function deleteBranding(string $type)
+    {
+        $allowed = [
+            'favicon'    => 'App.favicon',
+            'login_logo' => 'App.loginLogo',
+        ];
+
+        if (! isset($allowed[$type])) {
+            return redirect()->to('/admin/settings?tab=general')->with('error', 'Tipe branding tidak valid.');
+        }
+
+        $settingKey = $allowed[$type];
+        $currentPath = setting($settingKey);
+
+        // Hapus file fisik jika ada
+        if ($currentPath && file_exists(WRITEPATH . 'uploads/' . $currentPath)) {
+            unlink(WRITEPATH . 'uploads/' . $currentPath);
+        }
+
+        // Reset setting ke kosong (default)
+        setting($settingKey, '');
+
+        $label = $type === 'favicon' ? 'Favicon' : 'Logo halaman login';
+
+        return redirect()->to('/admin/settings?tab=general')->with('success', "{$label} berhasil dihapus dan dikembalikan ke default.");
+    }
 }

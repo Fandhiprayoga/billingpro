@@ -31,7 +31,7 @@ class LicenseController extends BaseController
     {
         $db = \Config\Database::connect();
         $builder = $db->table('licenses')
-            ->select('licenses.*, plans.name as plan_name, users.username, orders.order_number')
+            ->select('licenses.*, licenses.uuid, plans.name as plan_name, users.username, orders.order_number')
             ->join('plans', 'plans.id = licenses.plan_id', 'left')
             ->join('users', 'users.id = licenses.user_id', 'left')
             ->join('orders', 'orders.id = licenses.order_id', 'left')
@@ -72,14 +72,14 @@ class LicenseController extends BaseController
         return $this->response->setJSON($result);
     }
 
-    public function view(int $id)
+    public function view(string $uuid)
     {
         $license = $this->licenseModel->select('licenses.*, plans.name as plan_name, plans.duration_days, users.username, auth_identities.secret as email, orders.order_number')
             ->join('plans', 'plans.id = licenses.plan_id', 'left')
             ->join('users', 'users.id = licenses.user_id', 'left')
             ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = \'email_password\'', 'left')
             ->join('orders', 'orders.id = licenses.order_id', 'left')
-            ->where('licenses.id', $id)
+            ->where('licenses.uuid', $uuid)
             ->first();
 
         if (! $license) {
@@ -95,14 +95,14 @@ class LicenseController extends BaseController
         return $this->renderView('licenses/view', $data);
     }
 
-    public function revoke(int $id)
+    public function revoke(string $uuid)
     {
-        $license = $this->licenseModel->find($id);
+        $license = $this->licenseModel->where('uuid', $uuid)->first();
         if (! $license) {
             return redirect()->to('/admin/licenses')->with('error', 'Lisensi tidak ditemukan.');
         }
 
-        $this->licenseModel->update($id, [
+        $this->licenseModel->update($license->id, [
             'status' => 'revoked',
         ]);
 
