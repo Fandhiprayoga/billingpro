@@ -10,80 +10,151 @@
         </div>
       </div>
       <div class="card-body">
+        <!-- Filters -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <label class="small font-weight-bold">Status</label>
+            <select id="filter-status" class="form-control select2">
+              <option value="">Semua Status</option>
+              <option value="active" selected>Aktif</option>
+              <option value="expired">Expired</option>
+              <option value="revoked">Dicabut</option>
+              <option value="suspended">Ditangguhkan</option>
+            </select>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button id="btn-reset" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-undo"></i> Reset Filter
+            </button>
+          </div>
+        </div>
+
         <div class="table-responsive">
-          <table class="table table-striped">
+          <table class="table table-striped" id="table-my-licenses" style="width:100%">
             <thead>
               <tr>
-                <th class="text-center">#</th>
+                <th class="text-center" width="50">#</th>
                 <th>License Key</th>
                 <th>Paket</th>
                 <th>No. Order</th>
                 <th>Device</th>
                 <th>Status</th>
                 <th>Berlaku Sampai</th>
-                <th>Aksi</th>
+                <th width="60">Aksi</th>
               </tr>
             </thead>
-            <tbody>
-              <?php if (!empty($licenses)): ?>
-                <?php $no = 1; foreach ($licenses as $lic): ?>
-                <?php
-                  $isExpired = strtotime($lic->expires_at) < time();
-                  $licBadge = match($lic->status) {
-                    'active'    => $isExpired ? 'badge-secondary' : 'badge-success',
-                    'expired'   => 'badge-secondary',
-                    'revoked'   => 'badge-danger',
-                    'suspended' => 'badge-warning',
-                    default     => 'badge-light',
-                  };
-                  $licLabel = match($lic->status) {
-                    'active'    => $isExpired ? 'Expired' : 'Aktif',
-                    'expired'   => 'Expired',
-                    'revoked'   => 'Dicabut',
-                    'suspended' => 'Ditangguhkan',
-                    default     => $lic->status,
-                  };
-                  $daysRemaining = $isExpired ? 0 : (int) ceil((strtotime($lic->expires_at) - time()) / 86400);
-                ?>
-                <tr>
-                  <td class="text-center"><?= $no++ ?></td>
-                  <td><code><?= esc($lic->license_key) ?></code></td>
-                  <td><?= esc($lic->plan_name ?? '-') ?></td>
-                  <td><small><?= esc($lic->order_number ?? '-') ?></small></td>
-                  <td>
-                    <?php if ($lic->device_id): ?>
-                      <span class="badge badge-light" title="<?= esc($lic->device_id) ?>">
-                        <i class="fas fa-desktop"></i> Terkunci
-                      </span>
-                    <?php else: ?>
-                      <span class="text-muted">Belum aktif</span>
-                    <?php endif; ?>
-                  </td>
-                  <td><span class="badge <?= $licBadge ?>"><?= $licLabel ?></span></td>
-                  <td>
-                    <?= date('d/m/Y', strtotime($lic->expires_at)) ?>
-                    <?php if (!$isExpired && $lic->status === 'active'): ?>
-                      <br><small class="text-muted">(<?= $daysRemaining ?> hari lagi)</small>
-                    <?php endif; ?>
-                  </td>
-                  <td>
-                    <a href="<?= base_url('my-licenses/view/' . $lic->id) ?>" class="btn btn-sm btn-info" title="Detail">
-                      <i class="fas fa-eye"></i>
-                    </a>
-                  </td>
-                </tr>
-                <?php endforeach; ?>
-              <?php else: ?>
-                <tr>
-                  <td colspan="8" class="text-center">
-                    Belum ada lisensi. <a href="<?= base_url('plans') ?>">Beli paket</a> untuk mendapatkan lisensi.
-                  </td>
-                </tr>
-              <?php endif; ?>
-            </tbody>
           </table>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+$(function() {
+  $('.select2').select2({ width: '100%' });
+
+  var statusBadges = {
+    'active': 'badge-success',
+    'expired': 'badge-secondary',
+    'revoked': 'badge-danger',
+    'suspended': 'badge-warning'
+  };
+  var statusLabels = {
+    'active': 'Aktif',
+    'expired': 'Expired',
+    'revoked': 'Dicabut',
+    'suspended': 'Ditangguhkan'
+  };
+
+  var table = $('#table-my-licenses').DataTable({
+    processing: true,
+    serverSide: true,
+    ajax: {
+      url: '<?= base_url('my-licenses/ajax') ?>',
+      data: function(d) {
+        d.status = $('#filter-status').val();
+      }
+    },
+    order: [[0, 'desc']],
+    columns: [
+      { data: 'id', className: 'text-center',
+        render: function(data, type, row, meta) {
+          return meta.row + meta.settings._iDisplayStart + 1;
+        }
+      },
+      { data: 'license_key',
+        render: function(data) { return '<code>' + $('<span>').text(data).html() + '</code>'; }
+      },
+      { data: 'plan_name',
+        render: function(data) { return $('<span>').text(data || '-').html(); }
+      },
+      { data: 'order_number',
+        render: function(data) { return '<small>' + $('<span>').text(data || '-').html() + '</small>'; }
+      },
+      { data: 'device_id',
+        render: function(data) {
+          if (data) {
+            return '<span class="badge badge-light" title="' + $('<span>').text(data).html() + '"><i class="fas fa-desktop"></i> Terkunci</span>';
+          }
+          return '<span class="text-muted">Belum aktif</span>';
+        }
+      },
+      { data: null,
+        render: function(data, type, row) {
+          var now = new Date().getTime();
+          var exp = new Date(row.expires_at).getTime();
+          var isExpired = exp < now;
+          var status = row.status;
+
+          if (status === 'active' && isExpired) {
+            status = 'expired';
+          }
+
+          var cls = statusBadges[status] || 'badge-light';
+          var lbl = statusLabels[status] || status;
+          return '<span class="badge ' + cls + '">' + lbl + '</span>';
+        }
+      },
+      { data: 'expires_at',
+        render: function(data, type, row) {
+          if (!data) return '-';
+          var d = new Date(data);
+          var now = new Date().getTime();
+          var exp = d.getTime();
+          var dd = ('0' + d.getDate()).slice(-2);
+          var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+          var dateStr = dd + '/' + mm + '/' + d.getFullYear();
+
+          if (exp > now && row.status === 'active') {
+            var days = Math.ceil((exp - now) / 86400000);
+            dateStr += '<br><small class="text-muted">(' + days + ' hari lagi)</small>';
+          }
+          return dateStr;
+        }
+      },
+      { data: 'id', orderable: false,
+        render: function(data) {
+          return '<a href="<?= base_url('my-licenses/view/') ?>' + data + '" class="btn btn-sm btn-info" title="Detail"><i class="fas fa-eye"></i></a>';
+        }
+      }
+    ],
+    language: {
+      processing: 'Memuat...',
+      search: 'Cari:',
+      lengthMenu: 'Tampilkan _MENU_ data',
+      info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
+      infoEmpty: 'Tidak ada data',
+      infoFiltered: '(difilter dari _MAX_ total data)',
+      zeroRecords: 'Tidak ada data yang cocok',
+      emptyTable: 'Belum ada lisensi. <a href="<?= base_url('plans') ?>">Beli paket</a> untuk mendapatkan lisensi.',
+      paginate: { first: '«', previous: '‹', next: '›', last: '»' }
+    }
+  });
+
+  $('#filter-status').on('change', function() { table.draw(); });
+  $('#btn-reset').on('click', function() {
+    $('#filter-status').val('').trigger('change');
+  });
+});
+</script>

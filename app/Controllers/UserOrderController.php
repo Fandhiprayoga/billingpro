@@ -8,6 +8,8 @@ use App\Models\PaymentConfirmationModel;
 use App\Models\LicenseModel;
 use App\Libraries\Payment\PaymentService;
 
+use App\Libraries\DataTableHandler;
+
 /**
  * UserOrderController
  *
@@ -46,22 +48,54 @@ class UserOrderController extends BaseController
      */
     public function index()
     {
-        $userId = auth()->id();
-
-        $orders = $this->orderModel
-            ->select('orders.*, plans.name as plan_name')
-            ->join('plans', 'plans.id = orders.plan_id', 'left')
-            ->where('orders.user_id', $userId)
-            ->orderBy('orders.created_at', 'DESC')
-            ->findAll();
-
         $data = [
             'title'      => 'Order Saya',
             'page_title' => 'Order Saya',
-            'orders'     => $orders,
         ];
 
         return $this->renderView('user_billing/orders', $data);
+    }
+
+    /**
+     * AJAX DataTables endpoint untuk orders milik user.
+     */
+    public function ajax()
+    {
+        $userId = auth()->id();
+        $db = \Config\Database::connect();
+
+        $builder = $db->table('orders')
+            ->select('orders.*, plans.name as plan_name')
+            ->join('plans', 'plans.id = orders.plan_id', 'left')
+            ->where('orders.user_id', $userId);
+
+        // Filter: status
+        $status = $this->request->getGet('status');
+        if (!empty($status)) {
+            if (str_contains($status, ',')) {
+                $builder->whereIn('orders.status', explode(',', $status));
+            } else {
+                $builder->where('orders.status', $status);
+            }
+        }
+
+        $countBuilder = clone $builder;
+
+        $handler = new DataTableHandler($this->request);
+        $result = $handler->setBuilder($builder)
+            ->setCountBuilder($countBuilder)
+            ->setColumnMap([
+                0 => 'orders.id',
+                1 => 'orders.order_number',
+                2 => 'plans.name',
+                3 => 'orders.amount',
+                4 => 'orders.status',
+                5 => 'orders.created_at',
+                6 => '', // actions
+            ])
+            ->process();
+
+        return $this->response->setJSON($result);
     }
 
     /**

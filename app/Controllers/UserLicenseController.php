@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\LicenseModel;
+use App\Libraries\DataTableHandler;
 
 /**
  * UserLicenseController
@@ -24,23 +25,52 @@ class UserLicenseController extends BaseController
      */
     public function index()
     {
-        $userId = auth()->id();
-
-        $licenses = $this->licenseModel
-            ->select('licenses.*, plans.name as plan_name, orders.order_number')
-            ->join('plans', 'plans.id = licenses.plan_id', 'left')
-            ->join('orders', 'orders.id = licenses.order_id', 'left')
-            ->where('licenses.user_id', $userId)
-            ->orderBy('licenses.created_at', 'DESC')
-            ->findAll();
-
         $data = [
             'title'      => 'Lisensi Saya',
             'page_title' => 'Lisensi Saya',
-            'licenses'   => $licenses,
         ];
 
         return $this->renderView('user_billing/licenses', $data);
+    }
+
+    /**
+     * AJAX DataTables endpoint untuk lisensi milik user.
+     */
+    public function ajax()
+    {
+        $userId = auth()->id();
+        $db = \Config\Database::connect();
+
+        $builder = $db->table('licenses')
+            ->select('licenses.*, plans.name as plan_name, orders.order_number')
+            ->join('plans', 'plans.id = licenses.plan_id', 'left')
+            ->join('orders', 'orders.id = licenses.order_id', 'left')
+            ->where('licenses.user_id', $userId);
+
+        // Filter: status
+        $status = $this->request->getGet('status');
+        if (!empty($status)) {
+            $builder->where('licenses.status', $status);
+        }
+
+        $countBuilder = clone $builder;
+
+        $handler = new DataTableHandler($this->request);
+        $result = $handler->setBuilder($builder)
+            ->setCountBuilder($countBuilder)
+            ->setColumnMap([
+                0 => 'licenses.id',
+                1 => 'licenses.license_key',
+                2 => 'plans.name',
+                3 => 'orders.order_number',
+                4 => 'licenses.device_id',
+                5 => 'licenses.status',
+                6 => 'licenses.expires_at',
+                7 => '', // actions
+            ])
+            ->process();
+
+        return $this->response->setJSON($result);
     }
 
     /**

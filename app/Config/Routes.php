@@ -19,6 +19,9 @@ $routes->get('maintenance', static function () {
     return view('errors/maintenance');
 });
 
+// Public: Serve branding files (favicon, logo) — accessible without login
+$routes->get('uploads/branding/(:any)', 'FileController::serve/branding/$1');
+
 // ---------------------------------------------------------------
 // Protected Routes (require login)
 // ---------------------------------------------------------------
@@ -44,6 +47,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     // My Orders
     $routes->group('my-orders', static function ($routes) {
         $routes->get('/', 'UserOrderController::index');
+        $routes->get('ajax', 'UserOrderController::ajax');
         $routes->get('create', 'UserOrderController::create');
         $routes->post('store', 'UserOrderController::store');
         $routes->get('view/(:segment)', 'UserOrderController::view/$1');
@@ -54,6 +58,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
     // My Licenses
     $routes->group('my-licenses', static function ($routes) {
         $routes->get('/', 'UserLicenseController::index');
+        $routes->get('ajax', 'UserLicenseController::ajax');
         $routes->get('view/(:num)', 'UserLicenseController::view/$1');
     });
 
@@ -65,6 +70,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         // User Management
         $routes->group('users', static function ($routes) {
             $routes->get('/', 'UserController::index', ['filter' => 'permission:users.list']);
+            $routes->get('ajax', 'UserController::ajax', ['filter' => 'permission:users.list']);
             $routes->get('create', 'UserController::create', ['filter' => 'permission:users.create']);
             $routes->post('store', 'UserController::store', ['filter' => 'permission:users.create']);
             $routes->get('edit/(:num)', 'UserController::edit/$1', ['filter' => 'permission:users.edit']);
@@ -94,6 +100,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         // Plan Management
         $routes->group('plans', static function ($routes) {
             $routes->get('/', 'PlanController::index', ['filter' => 'permission:plans.list']);
+            $routes->get('ajax', 'PlanController::ajax', ['filter' => 'permission:plans.list']);
             $routes->get('create', 'PlanController::create', ['filter' => 'permission:plans.create']);
             $routes->post('store', 'PlanController::store', ['filter' => 'permission:plans.create']);
             $routes->get('edit/(:num)', 'PlanController::edit/$1', ['filter' => 'permission:plans.edit']);
@@ -104,6 +111,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         // Order Management
         $routes->group('orders', static function ($routes) {
             $routes->get('/', 'OrderController::index', ['filter' => 'permission:orders.list']);
+            $routes->get('ajax', 'OrderController::ajax', ['filter' => 'permission:orders.list']);
             $routes->get('create', 'OrderController::create', ['filter' => 'permission:orders.create']);
             $routes->post('store', 'OrderController::store', ['filter' => 'permission:orders.create']);
             $routes->get('view/(:segment)', 'OrderController::view/$1', ['filter' => 'permission:orders.view']);
@@ -116,6 +124,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         // License Management
         $routes->group('licenses', static function ($routes) {
             $routes->get('/', 'LicenseController::index', ['filter' => 'permission:licenses.list']);
+            $routes->get('ajax', 'LicenseController::ajax', ['filter' => 'permission:licenses.list']);
             $routes->get('view/(:num)', 'LicenseController::view/$1', ['filter' => 'permission:licenses.view']);
             $routes->post('revoke/(:num)', 'LicenseController::revoke/$1', ['filter' => 'permission:licenses.revoke']);
         });

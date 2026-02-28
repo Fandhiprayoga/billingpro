@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use CodeIgniter\Shield\Models\UserModel;
 use CodeIgniter\Shield\Entities\User;
+use App\Libraries\DataTableHandler;
 
 class UserController extends BaseController
 {
@@ -15,24 +16,63 @@ class UserController extends BaseController
     }
 
     /**
-     * Daftar semua users
+     * Daftar semua users (halaman view saja)
      */
     public function index()
     {
-        $users = $this->userModel->findAll();
-
-        // Tambahkan info group untuk setiap user
-        foreach ($users as $user) {
-            $user->groups = $user->getGroups();
-        }
-
         $data = [
             'title'      => 'Manajemen User',
             'page_title' => 'Daftar User',
-            'users'      => $users,
         ];
 
         return $this->renderView('users/index', $data);
+    }
+
+    /**
+     * AJAX DataTables endpoint untuk users.
+     */
+    public function ajax()
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('users')
+            ->select('users.id, users.username, users.active, users.created_at, auth_identities.secret as email')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = \'email_password\'', 'left');
+
+        // Filter: role
+        $role = $this->request->getGet('role');
+        if (!empty($role)) {
+            $builder->join('auth_groups_users', 'auth_groups_users.user_id = users.id', 'inner')
+                    ->where('auth_groups_users.group', $role);
+        }
+
+        // Filter: status
+        $status = $this->request->getGet('status');
+        if ($status !== null && $status !== '') {
+            $builder->where('users.active', (int) $status);
+        }
+
+        $countBuilder = clone $builder;
+
+        $handler = new DataTableHandler($this->request);
+        $result = $handler->setBuilder($builder)
+            ->setCountBuilder($countBuilder)
+            ->setColumnMap([
+                0 => 'users.id',
+                1 => 'users.username',
+                2 => 'auth_identities.secret',
+                3 => '', // role - not sortable
+                4 => 'users.active',
+                5 => '', // actions
+            ])
+            ->process();
+
+        // Enrich data with groups
+        foreach ($result['data'] as &$row) {
+            $user = $this->userModel->findById($row->id);
+            $row->groups = $user ? $user->getGroups() : [];
+        }
+
+        return $this->response->setJSON($result);
     }
 
     /**

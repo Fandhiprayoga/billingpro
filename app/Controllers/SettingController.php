@@ -13,6 +13,8 @@ class SettingController extends BaseController
         'App.siteDescription' => 'Boilerplate CodeIgniter 4 dengan Shield RBAC',
         'App.siteFooter'      => 'CI4 Shield RBAC Boilerplate',
         'App.siteVersion'     => '1.0.0',
+        'App.favicon'         => '',
+        'App.loginLogo'       => '',
         'App.maintenanceMode' => '0',
         'App.maintenanceMsg'  => 'Sistem sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.',
         'App.defaultRole'     => 'user',
@@ -58,6 +60,8 @@ class SettingController extends BaseController
             'site_description' => 'permit_empty|max_length[255]',
             'site_footer'      => 'permit_empty|max_length[100]',
             'site_version'     => 'permit_empty|max_length[20]',
+            'favicon'          => 'permit_empty|uploaded[favicon]|max_size[favicon,512]|ext_in[favicon,ico,png,svg]',
+            'login_logo'       => 'permit_empty|uploaded[login_logo]|max_size[login_logo,2048]|ext_in[login_logo,png,jpg,jpeg,svg,webp]',
         ];
 
         if (! $this->validate($rules)) {
@@ -69,6 +73,34 @@ class SettingController extends BaseController
         setting('App.siteDescription', $this->request->getPost('site_description'));
         setting('App.siteFooter', $this->request->getPost('site_footer'));
         setting('App.siteVersion', $this->request->getPost('site_version'));
+
+        // Handle favicon upload
+        $favicon = $this->request->getFile('favicon');
+        if ($favicon && $favicon->isValid() && ! $favicon->hasMoved()) {
+            $uploadPath = WRITEPATH . 'uploads/branding';
+            // Hapus file lama
+            $oldFavicon = setting('App.favicon');
+            if ($oldFavicon && file_exists(WRITEPATH . 'uploads/' . $oldFavicon)) {
+                unlink(WRITEPATH . 'uploads/' . $oldFavicon);
+            }
+            $newName = 'favicon_' . time() . '.' . $favicon->getExtension();
+            $favicon->move($uploadPath, $newName);
+            setting('App.favicon', 'branding/' . $newName);
+        }
+
+        // Handle login logo upload
+        $logo = $this->request->getFile('login_logo');
+        if ($logo && $logo->isValid() && ! $logo->hasMoved()) {
+            $uploadPath = WRITEPATH . 'uploads/branding';
+            // Hapus file lama
+            $oldLogo = setting('App.loginLogo');
+            if ($oldLogo && file_exists(WRITEPATH . 'uploads/' . $oldLogo)) {
+                unlink(WRITEPATH . 'uploads/' . $oldLogo);
+            }
+            $newName = 'login_logo_' . time() . '.' . $logo->getExtension();
+            $logo->move($uploadPath, $newName);
+            setting('App.loginLogo', 'branding/' . $newName);
+        }
 
         return redirect()->to('/admin/settings?tab=general')->with('success', 'Pengaturan umum berhasil diperbarui.');
     }

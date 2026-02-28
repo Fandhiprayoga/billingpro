@@ -6,6 +6,7 @@ use App\Models\OrderModel;
 use App\Models\PlanModel;
 use App\Models\PaymentConfirmationModel;
 use App\Libraries\Payment\PaymentService;
+use App\Libraries\DataTableHandler;
 
 class OrderController extends BaseController
 {
@@ -22,13 +23,75 @@ class OrderController extends BaseController
 
     public function index()
     {
+        // Ambil daftar paket dan user untuk filter dropdown
+        $db = \Config\Database::connect();
+        $plans = $this->planModel->findAll();
+
         $data = [
             'title'      => 'Manajemen Order',
             'page_title' => 'Daftar Order',
-            'orders'     => $this->orderModel->getOrdersWithDetails(),
+            'plans'      => $plans,
         ];
 
         return $this->renderView('orders/index', $data);
+    }
+
+    /**
+     * AJAX DataTables endpoint untuk orders (admin).
+     */
+    public function ajax()
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('orders')
+            ->select('orders.*, plans.name as plan_name, users.username')
+            ->join('plans', 'plans.id = orders.plan_id', 'left')
+            ->join('users', 'users.id = orders.user_id', 'left');
+
+        // Filter: status (default = pending,awaiting_confirmation)
+        $status = $this->request->getGet('status');
+        if (!empty($status)) {
+            if (str_contains($status, ',')) {
+                $builder->whereIn('orders.status', explode(',', $status));
+            } else {
+                $builder->where('orders.status', $status);
+            }
+        }
+
+        // Filter: plan
+        $planId = $this->request->getGet('plan_id');
+        if (!empty($planId)) {
+            $builder->where('orders.plan_id', (int) $planId);
+        }
+
+        // Filter: date range
+        $dateFrom = $this->request->getGet('date_from');
+        $dateTo   = $this->request->getGet('date_to');
+        if (!empty($dateFrom)) {
+            $builder->where('orders.created_at >=', $dateFrom . ' 00:00:00');
+        }
+        if (!empty($dateTo)) {
+            $builder->where('orders.created_at <=', $dateTo . ' 23:59:59');
+        }
+
+        $countBuilder = clone $builder;
+
+        $handler = new DataTableHandler($this->request);
+        $result = $handler->setBuilder($builder)
+            ->setCountBuilder($countBuilder)
+            ->setColumnMap([
+                0 => 'orders.id',
+                1 => 'orders.order_number',
+                2 => 'users.username',
+                3 => 'plans.name',
+                4 => 'orders.amount',
+                5 => 'orders.payment_method',
+                6 => 'orders.status',
+                7 => 'orders.created_at',
+                8 => '', // actions
+            ])
+            ->process();
+
+        return $this->response->setJSON($result);
     }
 
     public function create()

@@ -35,7 +35,7 @@ class FileController extends BaseController
         $mimeType = mime_content_type($filePath);
 
         // Hanya izinkan file gambar
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/svg+xml'];
         if (! in_array($mimeType, $allowedMimes)) {
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Tipe file tidak diizinkan.');
         }

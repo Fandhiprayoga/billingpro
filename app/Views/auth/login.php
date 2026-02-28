@@ -2,7 +2,11 @@
 
 <?= $this->section('content') ?>
 <div class="login-brand">
-  <img src="<?= base_url('assets/img/stisla-fill.svg') ?>" alt="logo" width="100" class="shadow-light rounded-circle">
+  <?php
+    $loginLogo = setting('App.loginLogo');
+    $logoSrc   = $loginLogo ? base_url('uploads/' . $loginLogo) : base_url('assets/img/stisla-fill.svg');
+  ?>
+  <img src="<?= $logoSrc ?>" alt="logo" width="100" class="shadow-light rounded-circle">
 </div>
 
 <div class="card card-primary">

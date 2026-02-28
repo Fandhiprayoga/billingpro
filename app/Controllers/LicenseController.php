@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\LicenseModel;
+use App\Libraries\DataTableHandler;
 
 class LicenseController extends BaseController
 {
@@ -18,10 +19,56 @@ class LicenseController extends BaseController
         $data = [
             'title'      => 'Manajemen Lisensi',
             'page_title' => 'Daftar Lisensi',
-            'licenses'   => $this->licenseModel->getLicensesWithDetails(),
         ];
 
         return $this->renderView('licenses/index', $data);
+    }
+
+    /**
+     * AJAX DataTables endpoint untuk licenses (admin).
+     */
+    public function ajax()
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('licenses')
+            ->select('licenses.*, plans.name as plan_name, users.username, orders.order_number')
+            ->join('plans', 'plans.id = licenses.plan_id', 'left')
+            ->join('users', 'users.id = licenses.user_id', 'left')
+            ->join('orders', 'orders.id = licenses.order_id', 'left');
+
+        // Filter: status (default = active)
+        $status = $this->request->getGet('status');
+        if (!empty($status)) {
+            $builder->where('licenses.status', $status);
+        }
+
+        // Filter: device locked
+        $device = $this->request->getGet('device');
+        if ($device === 'locked') {
+            $builder->where('licenses.device_id IS NOT NULL');
+        } elseif ($device === 'unlocked') {
+            $builder->where('licenses.device_id IS NULL');
+        }
+
+        $countBuilder = clone $builder;
+
+        $handler = new DataTableHandler($this->request);
+        $result = $handler->setBuilder($builder)
+            ->setCountBuilder($countBuilder)
+            ->setColumnMap([
+                0 => 'licenses.id',
+                1 => 'licenses.license_key',
+                2 => 'users.username',
+                3 => 'plans.name',
+                4 => 'orders.order_number',
+                5 => 'licenses.device_id',
+                6 => 'licenses.expires_at',
+                7 => 'licenses.status',
+                8 => '', // actions
+            ])
+            ->process();
+
+        return $this->response->setJSON($result);
     }
 
     public function view(int $id)

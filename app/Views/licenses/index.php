@@ -5,11 +5,38 @@
         <h4>Daftar Lisensi</h4>
       </div>
       <div class="card-body">
+        <!-- Filters -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <label class="small font-weight-bold">Status</label>
+            <select id="filter-status" class="form-control select2">
+              <option value="">Semua Status</option>
+              <option value="active" selected>Aktif</option>
+              <option value="expired">Expired</option>
+              <option value="revoked">Dicabut</option>
+              <option value="suspended">Ditangguhkan</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="small font-weight-bold">Device</label>
+            <select id="filter-device" class="form-control select2">
+              <option value="">Semua</option>
+              <option value="locked">Terkunci (ada device)</option>
+              <option value="unlocked">Belum aktif</option>
+            </select>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button id="btn-reset" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-undo"></i> Reset Filter
+            </button>
+          </div>
+        </div>
+
         <div class="table-responsive">
-          <table class="table table-striped">
+          <table class="table table-striped" id="table-licenses" style="width:100%">
             <thead>
               <tr>
-                <th class="text-center">#</th>
+                <th class="text-center" width="50">#</th>
                 <th>License Key</th>
                 <th>User</th>
                 <th>Paket</th>
@@ -17,66 +44,117 @@
                 <th>Device ID</th>
                 <th>Berlaku Sampai</th>
                 <th>Status</th>
-                <th>Aksi</th>
+                <th width="100">Aksi</th>
               </tr>
             </thead>
-            <tbody>
-              <?php if (!empty($licenses)): ?>
-                <?php $no = 1; foreach ($licenses as $lic): ?>
-                <tr>
-                  <td class="text-center"><?= $no++ ?></td>
-                  <td><code><?= esc($lic->license_key) ?></code></td>
-                  <td><?= esc($lic->username ?? '-') ?></td>
-                  <td><?= esc($lic->plan_name ?? '-') ?></td>
-                  <td><small><?= esc($lic->order_number ?? '-') ?></small></td>
-                  <td>
-                    <?php if (!empty($lic->device_id)): ?>
-                      <small class="text-monospace"><?= esc(substr($lic->device_id, 0, 15)) ?><?= strlen($lic->device_id) > 15 ? '...' : '' ?></small>
-                    <?php else: ?>
-                      <span class="text-muted">-</span>
-                    <?php endif; ?>
-                  </td>
-                  <td><?= date('d/m/Y', strtotime($lic->expires_at)) ?></td>
-                  <td>
-                    <?php
-                      $licBadge = match($lic->status) {
-                        'active'    => 'badge-success',
-                        'expired'   => 'badge-secondary',
-                        'revoked'   => 'badge-danger',
-                        'suspended' => 'badge-warning',
-                        default     => 'badge-light',
-                      };
-                    ?>
-                    <span class="badge <?= $licBadge ?>"><?= ucfirst($lic->status) ?></span>
-                  </td>
-                  <td>
-                    <?php if (activeGroupCan('licenses.view')): ?>
-                    <a href="<?= base_url('admin/licenses/view/' . $lic->id) ?>" class="btn btn-sm btn-info" title="Detail">
-                      <i class="fas fa-eye"></i>
-                    </a>
-                    <?php endif; ?>
-
-                    <?php if (activeGroupCan('licenses.revoke') && $lic->status === 'active'): ?>
-                    <form action="<?= base_url('admin/licenses/revoke/' . $lic->id) ?>" method="post" class="d-inline"
-                          onsubmit="return confirm('Yakin ingin mencabut lisensi ini?')">
-                      <?= csrf_field() ?>
-                      <button type="submit" class="btn btn-sm btn-danger" title="Cabut Lisensi">
-                        <i class="fas fa-ban"></i>
-                      </button>
-                    </form>
-                    <?php endif; ?>
-                  </td>
-                </tr>
-                <?php endforeach; ?>
-              <?php else: ?>
-                <tr>
-                  <td colspan="9" class="text-center">Belum ada data lisensi.</td>
-                </tr>
-              <?php endif; ?>
-            </tbody>
           </table>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+$(function() {
+  var csrfName = '<?= csrf_token() ?>';
+  var csrfHash = '<?= csrf_hash() ?>';
+  var canView = <?= activeGroupCan('licenses.view') ? 'true' : 'false' ?>;
+  var canRevoke = <?= activeGroupCan('licenses.revoke') ? 'true' : 'false' ?>;
+
+  $('.select2').select2({ width: '100%' });
+
+  var statusBadges = {
+    'active': 'badge-success',
+    'expired': 'badge-secondary',
+    'revoked': 'badge-danger',
+    'suspended': 'badge-warning'
+  };
+
+  var table = $('#table-licenses').DataTable({
+    processing: true,
+    serverSide: true,
+    ajax: {
+      url: '<?= base_url('admin/licenses/ajax') ?>',
+      data: function(d) {
+        d.status = $('#filter-status').val();
+        d.device = $('#filter-device').val();
+      }
+    },
+    order: [[0, 'desc']],
+    columns: [
+      { data: 'id', className: 'text-center',
+        render: function(data, type, row, meta) {
+          return meta.row + meta.settings._iDisplayStart + 1;
+        }
+      },
+      { data: 'license_key',
+        render: function(data) { return '<code>' + $('<span>').text(data).html() + '</code>'; }
+      },
+      { data: 'username',
+        render: function(data) { return $('<span>').text(data || '-').html(); }
+      },
+      { data: 'plan_name',
+        render: function(data) { return $('<span>').text(data || '-').html(); }
+      },
+      { data: 'order_number',
+        render: function(data) { return '<small>' + $('<span>').text(data || '-').html() + '</small>'; }
+      },
+      { data: 'device_id',
+        render: function(data) {
+          if (data) {
+            var short = data.length > 15 ? data.substring(0, 15) + '...' : data;
+            return '<small class="text-monospace">' + $('<span>').text(short).html() + '</small>';
+          }
+          return '<span class="text-muted">-</span>';
+        }
+      },
+      { data: 'expires_at',
+        render: function(data) {
+          if (!data) return '-';
+          var d = new Date(data);
+          var dd = ('0' + d.getDate()).slice(-2);
+          var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+          return dd + '/' + mm + '/' + d.getFullYear();
+        }
+      },
+      { data: 'status',
+        render: function(data) {
+          var cls = statusBadges[data] || 'badge-light';
+          return '<span class="badge ' + cls + '">' + (data ? data.charAt(0).toUpperCase() + data.slice(1) : '-') + '</span>';
+        }
+      },
+      { data: null, orderable: false,
+        render: function(data, type, row) {
+          var html = '';
+          if (canView) {
+            html += '<a href="<?= base_url('admin/licenses/view/') ?>' + row.id + '" class="btn btn-sm btn-info" title="Detail"><i class="fas fa-eye"></i></a> ';
+          }
+          if (canRevoke && row.status === 'active') {
+            html += '<form action="<?= base_url('admin/licenses/revoke/') ?>' + row.id + '" method="post" class="d-inline" onsubmit="return confirm(\'Yakin ingin mencabut lisensi ini?\')">';
+            html += '<input type="hidden" name="' + csrfName + '" value="' + csrfHash + '">';
+            html += '<button type="submit" class="btn btn-sm btn-danger" title="Cabut Lisensi"><i class="fas fa-ban"></i></button></form>';
+          }
+          return html;
+        }
+      }
+    ],
+    language: {
+      processing: 'Memuat...',
+      search: 'Cari:',
+      lengthMenu: 'Tampilkan _MENU_ data',
+      info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
+      infoEmpty: 'Tidak ada data',
+      infoFiltered: '(difilter dari _MAX_ total data)',
+      zeroRecords: 'Tidak ada data yang cocok',
+      emptyTable: 'Belum ada data lisensi',
+      paginate: { first: '«', previous: '‹', next: '›', last: '»' }
+    }
+  });
+
+  $('#filter-status, #filter-device').on('change', function() { table.draw(); });
+  $('#btn-reset').on('click', function() {
+    $('#filter-status').val('').trigger('change');
+    $('#filter-device').val('').trigger('change');
+  });
+});
+</script>

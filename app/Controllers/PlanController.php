@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\PlanModel;
+use App\Libraries\DataTableHandler;
 
 class PlanController extends BaseController
 {
@@ -18,10 +19,42 @@ class PlanController extends BaseController
         $data = [
             'title'      => 'Manajemen Paket',
             'page_title' => 'Daftar Paket Lisensi',
-            'plans'      => $this->planModel->orderBy('price', 'ASC')->findAll(),
         ];
 
         return $this->renderView('plans/index', $data);
+    }
+
+    /**
+     * AJAX DataTables endpoint untuk plans.
+     */
+    public function ajax()
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('plans')
+            ->select('plans.*');
+
+        // Filter: status aktif
+        $isActive = $this->request->getGet('is_active');
+        if ($isActive !== null && $isActive !== '') {
+            $builder->where('plans.is_active', (int) $isActive);
+        }
+
+        $countBuilder = clone $builder;
+
+        $handler = new DataTableHandler($this->request);
+        $result = $handler->setBuilder($builder)
+            ->setCountBuilder($countBuilder)
+            ->setColumnMap([
+                0 => 'plans.id',
+                1 => 'plans.name',
+                2 => 'plans.price',
+                3 => 'plans.duration_days',
+                4 => 'plans.is_active',
+                5 => '', // actions
+            ])
+            ->process();
+
+        return $this->response->setJSON($result);
     }
 
     public function create()

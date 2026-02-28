@@ -12,80 +12,136 @@
         </div>
       </div>
       <div class="card-body">
+        <!-- Filters -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <label class="small font-weight-bold">Role</label>
+            <select id="filter-role" class="form-control select2">
+              <option value="">Semua Role</option>
+              <option value="superadmin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="manager">Manager</option>
+              <option value="user">User</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="small font-weight-bold">Status</label>
+            <select id="filter-status" class="form-control select2">
+              <option value="">Semua Status</option>
+              <option value="1" selected>Aktif</option>
+              <option value="0">Nonaktif</option>
+            </select>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button id="btn-reset" class="btn btn-outline-secondary btn-sm">
+              <i class="fas fa-undo"></i> Reset Filter
+            </button>
+          </div>
+        </div>
+
         <div class="table-responsive">
-          <table class="table table-striped" id="table-users">
+          <table class="table table-striped" id="table-users" style="width:100%">
             <thead>
               <tr>
-                <th class="text-center">#</th>
+                <th class="text-center" width="50">#</th>
                 <th>Username</th>
                 <th>Email</th>
                 <th>Role</th>
                 <th>Status</th>
-                <th>Aksi</th>
+                <th width="120">Aksi</th>
               </tr>
             </thead>
-            <tbody>
-              <?php if (!empty($users)): ?>
-                <?php $no = 1; foreach ($users as $user): ?>
-                <tr>
-                  <td class="text-center"><?= $no++ ?></td>
-                  <td>
-                    <img alt="avatar" src="<?= base_url('assets/img/avatar/avatar-1.png') ?>" class="rounded-circle mr-1" width="35">
-                    <?= esc($user->username) ?>
-                  </td>
-                  <td><?= esc($user->email) ?></td>
-                  <td>
-                    <?php if (!empty($user->groups)): ?>
-                      <?php foreach ($user->groups as $group): ?>
-                        <?php
-                          $badgeClass = match($group) {
-                            'superadmin' => 'badge-danger',
-                            'admin'      => 'badge-warning',
-                            'manager'    => 'badge-info',
-                            default      => 'badge-primary',
-                          };
-                        ?>
-                        <span class="badge <?= $badgeClass ?>"><?= ucfirst($group) ?></span>
-                      <?php endforeach; ?>
-                    <?php else: ?>
-                      <span class="badge badge-secondary">No Role</span>
-                    <?php endif; ?>
-                  </td>
-                  <td>
-                    <?php if ($user->active): ?>
-                      <span class="badge badge-success">Aktif</span>
-                    <?php else: ?>
-                      <span class="badge badge-danger">Nonaktif</span>
-                    <?php endif; ?>
-                  </td>
-                  <td>
-                    <?php if (activeGroupCan('users.edit')): ?>
-                    <a href="<?= base_url('admin/users/edit/' . $user->id) ?>" class="btn btn-sm btn-info" title="Edit">
-                      <i class="fas fa-edit"></i>
-                    </a>
-                    <?php endif; ?>
-
-                    <?php if (activeGroupCan('users.delete') && $user->id !== auth()->id()): ?>
-                    <form action="<?= base_url('admin/users/delete/' . $user->id) ?>" method="post" class="d-inline"
-                          onsubmit="return confirm('Yakin ingin menghapus user ini?')">
-                      <?= csrf_field() ?>
-                      <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </form>
-                    <?php endif; ?>
-                  </td>
-                </tr>
-                <?php endforeach; ?>
-              <?php else: ?>
-                <tr>
-                  <td colspan="6" class="text-center">Belum ada data user.</td>
-                </tr>
-              <?php endif; ?>
-            </tbody>
           </table>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+$(function() {
+  var csrfName = '<?= csrf_token() ?>';
+  var csrfHash = '<?= csrf_hash() ?>';
+  var canEdit = <?= activeGroupCan('users.edit') ? 'true' : 'false' ?>;
+  var canDelete = <?= activeGroupCan('users.delete') ? 'true' : 'false' ?>;
+  var currentUserId = <?= auth()->id() ?>;
+
+  $('.select2').select2({ width: '100%' });
+
+  var table = $('#table-users').DataTable({
+    processing: true,
+    serverSide: true,
+    ajax: {
+      url: '<?= base_url('admin/users/ajax') ?>',
+      data: function(d) {
+        d.role   = $('#filter-role').val();
+        d.status = $('#filter-status').val();
+      }
+    },
+    order: [[0, 'desc']],
+    columns: [
+      { data: 'id', className: 'text-center',
+        render: function(data, type, row, meta) {
+          return meta.row + meta.settings._iDisplayStart + 1;
+        }
+      },
+      { data: 'username',
+        render: function(data) {
+          return '<img alt="avatar" src="<?= base_url('assets/img/avatar/avatar-1.png') ?>" class="rounded-circle mr-1" width="35"> ' + $('<span>').text(data).html();
+        }
+      },
+      { data: 'email',
+        render: function(data) { return $('<span>').text(data).html(); }
+      },
+      { data: 'groups', orderable: false,
+        render: function(data) {
+          if (!data || data.length === 0) return '<span class="badge badge-secondary">No Role</span>';
+          var badges = { superadmin: 'badge-danger', admin: 'badge-warning', manager: 'badge-info' };
+          return data.map(function(g) {
+            var cls = badges[g] || 'badge-primary';
+            return '<span class="badge ' + cls + '">' + g.charAt(0).toUpperCase() + g.slice(1) + '</span>';
+          }).join(' ');
+        }
+      },
+      { data: 'active',
+        render: function(data) {
+          return data == 1
+            ? '<span class="badge badge-success">Aktif</span>'
+            : '<span class="badge badge-danger">Nonaktif</span>';
+        }
+      },
+      { data: 'id', orderable: false,
+        render: function(data) {
+          var html = '';
+          if (canEdit) {
+            html += '<a href="<?= base_url('admin/users/edit/') ?>' + data + '" class="btn btn-sm btn-info" title="Edit"><i class="fas fa-edit"></i></a> ';
+          }
+          if (canDelete && data != currentUserId) {
+            html += '<form action="<?= base_url('admin/users/delete/') ?>' + data + '" method="post" class="d-inline" onsubmit="return confirm(\'Yakin ingin menghapus user ini?\')">';
+            html += '<input type="hidden" name="' + csrfName + '" value="' + csrfHash + '">';
+            html += '<button type="submit" class="btn btn-sm btn-danger" title="Hapus"><i class="fas fa-trash"></i></button></form>';
+          }
+          return html;
+        }
+      }
+    ],
+    language: {
+      processing: 'Memuat...',
+      search: 'Cari:',
+      lengthMenu: 'Tampilkan _MENU_ data',
+      info: 'Menampilkan _START_ - _END_ dari _TOTAL_ data',
+      infoEmpty: 'Tidak ada data',
+      infoFiltered: '(difilter dari _MAX_ total data)',
+      zeroRecords: 'Tidak ada data yang cocok',
+      emptyTable: 'Belum ada data user',
+      paginate: { first: '«', previous: '‹', next: '›', last: '»' }
+    }
+  });
+
+  $('#filter-role, #filter-status').on('change', function() { table.draw(); });
+  $('#btn-reset').on('click', function() {
+    $('#filter-role').val('').trigger('change');
+    $('#filter-status').val('').trigger('change');
+  });
+});
+</script>

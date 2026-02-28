@@ -46,7 +46,7 @@ $s = function (string $key) use ($settings) {
           <!-- TAB: UMUM -->
           <!-- ============================================ -->
           <div class="tab-pane fade <?= $activeTab === 'general' ? 'show active' : '' ?>" id="general" role="tabpanel">
-            <form action="<?= base_url('admin/settings/update/general') ?>" method="post" class="mt-4">
+            <form action="<?= base_url('admin/settings/update/general') ?>" method="post" enctype="multipart/form-data" class="mt-4">
               <?= csrf_field() ?>
 
               <div class="form-group row">
@@ -90,6 +90,59 @@ $s = function (string $key) use ($settings) {
                 <div class="col-sm-9">
                   <input type="text" class="form-control" id="site_version" name="site_version"
                          value="<?= old('site_version', $s('App.siteVersion')) ?>">
+                </div>
+              </div>
+
+              <hr>
+              <h6 class="text-muted mb-3"><i class="fas fa-image"></i> Branding</h6>
+
+              <div class="form-group row">
+                <label for="favicon" class="col-sm-3 col-form-label">Favicon</label>
+                <div class="col-sm-9">
+                  <div class="d-flex align-items-center mb-2">
+                    <?php
+                      $faviconPath = $settings['App.favicon'] ?? '';
+                      $faviconUrl  = $faviconPath ? base_url('uploads/' . $faviconPath) : base_url('assets/img/stisla-fill.svg');
+                    ?>
+                    <img src="<?= $faviconUrl ?>" alt="Favicon saat ini" id="favicon-preview"
+                         style="width: 32px; height: 32px; object-fit: contain; border: 1px solid #ddd; border-radius: 4px; padding: 2px; background: #fff;" class="mr-3">
+                    <?php if ($faviconPath): ?>
+                      <span class="badge badge-success"><i class="fas fa-check"></i> Sudah diatur</span>
+                    <?php else: ?>
+                      <span class="badge badge-secondary">Default</span>
+                    <?php endif; ?>
+                  </div>
+                  <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="favicon" name="favicon"
+                           accept=".ico,.png,.svg">
+                    <label class="custom-file-label" for="favicon">Pilih file favicon...</label>
+                  </div>
+                  <small class="form-text text-muted">Format: ICO, PNG, atau SVG. Maksimal 512 KB. Rekomendasi ukuran: 32x32 atau 64x64 px.</small>
+                </div>
+              </div>
+
+              <div class="form-group row">
+                <label for="login_logo" class="col-sm-3 col-form-label">Logo Halaman Login</label>
+                <div class="col-sm-9">
+                  <div class="d-flex align-items-center mb-2">
+                    <?php
+                      $logoPath = $settings['App.loginLogo'] ?? '';
+                      $logoUrl  = $logoPath ? base_url('uploads/' . $logoPath) : base_url('assets/img/stisla-fill.svg');
+                    ?>
+                    <img src="<?= $logoUrl ?>" alt="Logo login saat ini" id="logo-preview"
+                         style="width: 80px; height: 80px; object-fit: contain; border: 1px solid #ddd; border-radius: 8px; padding: 4px; background: #fff;" class="mr-3">
+                    <?php if ($logoPath): ?>
+                      <span class="badge badge-success"><i class="fas fa-check"></i> Sudah diatur</span>
+                    <?php else: ?>
+                      <span class="badge badge-secondary">Default (Stisla)</span>
+                    <?php endif; ?>
+                  </div>
+                  <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="login_logo" name="login_logo"
+                           accept=".png,.jpg,.jpeg,.svg,.webp">
+                    <label class="custom-file-label" for="login_logo">Pilih file logo...</label>
+                  </div>
+                  <small class="form-text text-muted">Format: PNG, JPG, SVG, atau WebP. Maksimal 2 MB. Rekomendasi ukuran: 100x100 px.</small>
                 </div>
               </div>
 
@@ -278,3 +331,23 @@ $s = function (string $key) use ($settings) {
     </div>
   </div>
 </div>
+
+<script>
+$(function() {
+  // Custom file input label update + image preview
+  $('.custom-file-input').on('change', function() {
+    var fileName = $(this).val().split('\\').pop();
+    $(this).siblings('.custom-file-label').addClass('selected').html(fileName);
+
+    // Preview image
+    var previewId = $(this).attr('id') === 'favicon' ? '#favicon-preview' : '#logo-preview';
+    if (this.files && this.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        $(previewId).attr('src', e.target.result);
+      };
+      reader.readAsDataURL(this.files[0]);
+    }
+  });
+});
+</script>
