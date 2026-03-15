@@ -10,6 +10,7 @@ class CustomerProfileModel extends Model
     protected $primaryKey    = 'id';
     protected $allowedFields = ['user_id', 'nama_usaha', 'no_telp', 'propinsi', 'kabupaten'];
     protected $useTimestamps = true;
+    protected $returnType    = 'object';
 
     /**
      * Get profile by user ID
@@ -29,7 +30,7 @@ class CustomerProfileModel extends Model
         $data['user_id'] = $userId;
 
         if ($existing) {
-            return $this->update($existing->id ?? $existing['id'], $data);
+            return $this->update($existing->id, $data);
         }
 
         return $this->insert($data) !== false;
