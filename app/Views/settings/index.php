@@ -208,7 +208,7 @@ $s = function (string $key) use ($settings) {
                 <div class="col-sm-9">
                   <select class="form-control" id="default_role" name="default_role">
                     <?php foreach ($groups as $key => $group): ?>
-                      <option value="<?= $key ?>" <?= ($settings['App.defaultRole'] ?? 'user') === $key ? 'selected' : '' ?>>
+                      <option value="<?= $key ?>" <?= ($settings['AuthGroups.defaultGroup'] ?? 'user') === $key ? 'selected' : '' ?>>
                         <?= esc($group['title']) ?>
                       </option>
                     <?php endforeach; ?>
@@ -222,7 +222,7 @@ $s = function (string $key) use ($settings) {
                 <div class="col-sm-9">
                   <label class="custom-switch mt-2">
                     <input type="checkbox" name="allow_registration" value="1" class="custom-switch-input"
-                           <?= ($settings['App.allowRegistration'] ?? '1') === '1' ? 'checked' : '' ?>>
+                           <?= !empty($settings['Auth.allowRegistration']) ? 'checked' : '' ?>>
                     <span class="custom-switch-indicator"></span>
                     <span class="custom-switch-description">Izinkan registrasi user baru</span>
                   </label>

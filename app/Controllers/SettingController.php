@@ -20,8 +20,8 @@ class SettingController extends BaseController
         'App.bankAccountName' => '',
         'App.maintenanceMode' => '0',
         'App.maintenanceMsg'  => 'Sistem sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.',
-        'App.defaultRole'     => 'user',
-        'App.allowRegistration' => '1',
+        'AuthGroups.defaultGroup' => 'user',
+        'Auth.allowRegistration'  => true,
         'Mail.protocol'       => 'smtp',
         'Mail.hostname'       => '',
         'Mail.port'           => '587',
@@ -132,8 +132,8 @@ class SettingController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        setting('App.defaultRole', $this->request->getPost('default_role'));
-        setting('App.allowRegistration', $this->request->getPost('allow_registration') ? '1' : '0');
+        setting('AuthGroups.defaultGroup', $this->request->getPost('default_role'));
+        setting('Auth.allowRegistration', (bool) $this->request->getPost('allow_registration'));
         setting('App.maintenanceMode', $this->request->getPost('maintenance_mode') ? '1' : '0');
         setting('App.maintenanceMsg', $this->request->getPost('maintenance_msg') ?? '');
 

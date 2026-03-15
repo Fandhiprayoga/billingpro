@@ -56,7 +56,13 @@
     </form>
   </div>
 </div>
+<?php if (setting('Auth.allowRegistration')): ?>
 <div class="mt-5 text-muted text-center">
   Sudah punya akun? <a href="<?= url_to('login') ?>">Login</a>
 </div>
+<?php else: ?>
+<div class="mt-5 text-muted text-center">
+  <a href="<?= url_to('login') ?>">Kembali ke Login</a>
+</div>
+<?php endif; ?>
 <?= $this->endSection() ?>
