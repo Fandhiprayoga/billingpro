@@ -29,22 +29,42 @@
       <?= csrf_field() ?>
 
       <div class="form-group">
-        <label for="username">Username</label>
+        <label for="username">Username <span class="text-danger">*</span></label>
         <input id="username" type="text" class="form-control" name="username" value="<?= old('username') ?>" required autofocus>
       </div>
 
       <div class="form-group">
-        <label for="email">Email</label>
+        <label for="email">Email <span class="text-danger">*</span></label>
         <input id="email" type="email" class="form-control" name="email" value="<?= old('email') ?>" required>
       </div>
 
       <div class="form-group">
-        <label for="password">Password</label>
+        <label for="nama_usaha">Nama Usaha</label>
+        <input id="nama_usaha" type="text" class="form-control" name="nama_usaha" value="<?= old('nama_usaha') ?>" placeholder="Nama toko / usaha Anda">
+      </div>
+
+      <div class="form-group">
+        <label for="no_telp">No. HP / Telp</label>
+        <input id="no_telp" type="text" class="form-control" name="no_telp" value="<?= old('no_telp') ?>" placeholder="08xxxxxxxxxx">
+      </div>
+
+      <div class="form-group">
+        <label for="propinsi">Propinsi</label>
+        <input id="propinsi" type="text" class="form-control" name="propinsi" value="<?= old('propinsi') ?>">
+      </div>
+
+      <div class="form-group">
+        <label for="kabupaten">Kabupaten / Kota</label>
+        <input id="kabupaten" type="text" class="form-control" name="kabupaten" value="<?= old('kabupaten') ?>">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password <span class="text-danger">*</span></label>
         <input id="password" type="password" class="form-control" name="password" required>
       </div>
 
       <div class="form-group">
-        <label for="password_confirm">Konfirmasi Password</label>
+        <label for="password_confirm">Konfirmasi Password <span class="text-danger">*</span></label>
         <input id="password_confirm" type="password" class="form-control" name="password_confirm" required>
       </div>
 

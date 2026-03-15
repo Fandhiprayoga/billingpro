@@ -42,6 +42,40 @@
           </div>
           <?php endif; ?>
 
+          <hr>
+          <h6 class="text-muted mb-3"><i class="fas fa-store"></i> Data Usaha / Pelanggan <small>(opsional)</small></h6>
+
+          <div class="form-group">
+            <label for="nama_usaha">Nama Usaha</label>
+            <input type="text" class="form-control" id="nama_usaha" name="nama_usaha"
+                   value="<?= old('nama_usaha', $profile->nama_usaha ?? $profile['nama_usaha'] ?? '') ?>"
+                   placeholder="Nama toko / usaha">
+          </div>
+
+          <div class="form-group">
+            <label for="no_telp">No. HP / Telp</label>
+            <input type="text" class="form-control" id="no_telp" name="no_telp"
+                   value="<?= old('no_telp', $profile->no_telp ?? $profile['no_telp'] ?? '') ?>"
+                   placeholder="08xxxxxxxxxx">
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="propinsi">Propinsi</label>
+                <input type="text" class="form-control" id="propinsi" name="propinsi"
+                       value="<?= old('propinsi', $profile->propinsi ?? $profile['propinsi'] ?? '') ?>">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="kabupaten">Kabupaten / Kota</label>
+                <input type="text" class="form-control" id="kabupaten" name="kabupaten"
+                       value="<?= old('kabupaten', $profile->kabupaten ?? $profile['kabupaten'] ?? '') ?>">
+              </div>
+            </div>
+          </div>
+
           <div class="form-group text-right">
             <a href="<?= base_url('admin/users') ?>" class="btn btn-secondary mr-1">Batal</a>
             <button type="submit" class="btn btn-primary">

@@ -46,6 +46,8 @@
                 <th class="text-center" width="50">#</th>
                 <th>Username</th>
                 <th>Email</th>
+                <th>Nama Usaha</th>
+                <th>No. Telp</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th width="120">Aksi</th>
@@ -92,6 +94,12 @@ $(function() {
       },
       { data: 'email',
         render: function(data) { return $('<span>').text(data).html(); }
+      },
+      { data: 'nama_usaha', orderable: false,
+        render: function(data) { return data ? $('<span>').text(data).html() : '<span class="text-muted">-</span>'; }
+      },
+      { data: 'no_telp', orderable: false,
+        render: function(data) { return data ? $('<span>').text(data).html() : '<span class="text-muted">-</span>'; }
       },
       { data: 'groups', orderable: false,
         render: function(data) {

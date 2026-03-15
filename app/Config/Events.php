@@ -53,3 +53,31 @@ Events::on('pre_system', static function (): void {
         }
     }
 });
+
+/*
+ * --------------------------------------------------------------------
+ * Shield: Save Customer Profile on Registration
+ * --------------------------------------------------------------------
+ * Karena register hanya digunakan oleh customer/user biasa,
+ * simpan data profil pelanggan setelah user berhasil terdaftar.
+ */
+Events::on('register', static function (object $user): void {
+    $request = service('request');
+
+    $namaUsaha = $request->getPost('nama_usaha');
+    $noTelp    = $request->getPost('no_telp');
+    $propinsi  = $request->getPost('propinsi');
+    $kabupaten = $request->getPost('kabupaten');
+
+    // Hanya simpan jika ada data profil yang diisi
+    if ($namaUsaha || $noTelp || $propinsi || $kabupaten) {
+        $profileModel = new \App\Models\CustomerProfileModel();
+        $profileModel->insert([
+            'user_id'    => $user->id,
+            'nama_usaha' => $namaUsaha,
+            'no_telp'    => $noTelp,
+            'propinsi'   => $propinsi,
+            'kabupaten'  => $kabupaten,
+        ]);
+    }
+});

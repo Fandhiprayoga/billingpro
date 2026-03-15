@@ -18,6 +18,7 @@ Boilerplate project CodeIgniter 4 dengan **CodeIgniter Shield** untuk autentikas
 - ✅ Auto-generate License Key (20 karakter unik)
 - ✅ API Endpoint untuk aplikasi external / POS / Web (activate & check license)
 - ✅ Payment Service Layer (siap integrasi Payment Gateway)
+- ✅ Profil Pelanggan (nama usaha, no. telp, propinsi, kabupaten) — otomatis tersimpan saat registrasi
 
 ## Roles Default
 
@@ -102,9 +103,9 @@ app/
 │   ├── BaseController.php    # Base controller dengan renderView()
 │   ├── AuthController.php    # Override login/register Shield
 │   ├── DashboardController.php
-│   ├── UserController.php    # CRUD User
+│   ├── UserController.php    # CRUD User + profil pelanggan
 │   ├── RoleController.php    # View Roles & Permissions
-│   ├── ProfileController.php
+│   ├── ProfileController.php # Profil user + data usaha pelanggan
 │   ├── SettingController.php
 │   ├── PlanController.php    # CRUD Paket Lisensi (Admin)
 │   ├── OrderController.php   # Order + approval + bukti bayar (Admin)
@@ -115,6 +116,7 @@ app/
 │       └── LicenseApiController.php  # API untuk aplikasi external (POS / Web)
 ├── Database/
 │   ├── Migrations/
+│   │   ├── *_CreateCustomerProfilesTable.php
 │   │   ├── *_CreatePlansTable.php
 │   │   ├── *_CreateOrdersTable.php
 │   │   ├── *_CreatePaymentConfirmationsTable.php
@@ -131,6 +133,7 @@ app/
 │       ├── ManualPaymentHandler.php     # Handler pembayaran manual
 │       └── PaymentService.php           # Service utama (Strategy Pattern)
 ├── Models/
+│   ├── CustomerProfileModel.php      # Model profil pelanggan
 │   ├── PlanModel.php         # Model paket lisensi
 │   ├── OrderModel.php        # Model order
 │   ├── PaymentConfirmationModel.php  # Model konfirmasi pembayaran
@@ -508,6 +511,7 @@ User pilih Plan → Buat Order → Upload Bukti Bayar → Admin Review
 
 | Tabel | Deskripsi |
 |-------|-----------|
+| `customer_profiles` | Profil pelanggan (nama usaha, no. telp, propinsi, kabupaten) — relasi 1:1 dengan `users` |
 | `plans` | Paket lisensi (nama, harga, durasi, fitur) |
 | `orders` | Order pembelian (terkait user & plan, status, payment method) |
 | `payment_confirmations` | Bukti pembayaran manual (bank, rekening, bukti transfer) |
@@ -818,6 +822,41 @@ Tabel `orders` sudah menyediakan kolom yang siap pakai:
 | `status` | `pending` → `awaiting_confirmation` → `paid` / `cancelled` |
 
 > **Prinsip:** Logika pembayaran terisolasi di masing-masing handler. Controller dan tabel tetap sama. Cukup `registerHandler()` untuk menambah gateway baru.
+
+---
+
+## Profil Pelanggan (Customer Profile)
+
+Setiap user (khususnya role **User** / pelanggan) memiliki data profil tambahan yang tersimpan di tabel `customer_profiles` (relasi 1:1 dengan `users`).
+
+### Tabel `customer_profiles`
+
+| Kolom | Tipe | Deskripsi |
+|-------|------|-----------|
+| `id` | INT (PK) | Primary key |
+| `user_id` | INT (FK → users.id, UNIQUE) | Relasi ke tabel users |
+| `nama_usaha` | VARCHAR(255) | Nama toko / usaha pelanggan |
+| `no_telp` | VARCHAR(20) | Nomor HP / telepon |
+| `propinsi` | VARCHAR(100) | Propinsi |
+| `kabupaten` | VARCHAR(100) | Kabupaten / Kota |
+| `created_at` | DATETIME | Timestamp dibuat |
+| `updated_at` | DATETIME | Timestamp diperbarui |
+
+### Integrasi
+
+Profil pelanggan terintegrasi di 3 tempat:
+
+| Halaman | Deskripsi |
+|---------|-----------|
+| **Register** (`/register`) | Form registrasi menyertakan field profil pelanggan. Data disimpan otomatis via Shield Event `register`. |
+| **Profil** (`/profile`) | User bisa melihat dan mengedit data usahanya sendiri. |
+| **Admin Users** (`/admin/users`) | Admin bisa melihat (di DataTable) dan mengedit profil pelanggan saat create/edit user. |
+
+### Arsitektur
+
+- **Event-based**: Registrasi menggunakan Shield Event `register` (di `app/Config/Events.php`) untuk menyimpan profil tanpa mengubah kode Shield.
+- **Table Extension Pattern**: Data profil pelanggan disimpan di tabel terpisah (`customer_profiles`) agar tidak mengganggu tabel `users` milik Shield.
+- **`CustomerProfileModel`**: Menyediakan helper `getByUserId()` dan `saveProfile()` untuk operasi CRUD.
 
 ---
 

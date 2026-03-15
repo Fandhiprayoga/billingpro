@@ -5,14 +5,17 @@ namespace App\Controllers;
 use CodeIgniter\Shield\Models\UserModel;
 use CodeIgniter\Shield\Entities\User;
 use App\Libraries\DataTableHandler;
+use App\Models\CustomerProfileModel;
 
 class UserController extends BaseController
 {
     protected UserModel $userModel;
+    protected CustomerProfileModel $profileModel;
 
     public function __construct()
     {
-        $this->userModel = new UserModel();
+        $this->userModel  = new UserModel();
+        $this->profileModel = new CustomerProfileModel();
     }
 
     /**
@@ -60,16 +63,21 @@ class UserController extends BaseController
                 0 => 'users.id',
                 1 => 'users.username',
                 2 => 'auth_identities.secret',
-                3 => '', // role - not sortable
-                4 => 'users.active',
-                5 => '', // actions
+                3 => '', // nama_usaha - not sortable
+                4 => '', // no_telp - not sortable
+                5 => '', // role - not sortable
+                6 => 'users.active',
+                7 => '', // actions
             ])
             ->process();
 
-        // Enrich data with groups
+        // Enrich data with groups and profile
         foreach ($result['data'] as &$row) {
             $user = $this->userModel->findById($row->id);
             $row->groups = $user ? $user->getGroups() : [];
+            $profile = $this->profileModel->getByUserId((int) $row->id);
+            $row->nama_usaha = $profile->nama_usaha ?? $profile['nama_usaha'] ?? '';
+            $row->no_telp    = $profile->no_telp ?? $profile['no_telp'] ?? '';
         }
 
         return $this->response->setJSON($result);
@@ -129,6 +137,14 @@ class UserController extends BaseController
             $user->addGroup($groups);
         }
 
+        // Save customer profile
+        $this->profileModel->saveProfile($user->id, [
+            'nama_usaha' => $this->request->getPost('nama_usaha'),
+            'no_telp'    => $this->request->getPost('no_telp'),
+            'propinsi'   => $this->request->getPost('propinsi'),
+            'kabupaten'  => $this->request->getPost('kabupaten'),
+        ]);
+
         return redirect()->to('/admin/users')->with('success', 'User berhasil ditambahkan.');
     }
 
@@ -145,12 +161,15 @@ class UserController extends BaseController
 
         $authGroups = config('AuthGroups');
 
+        $profile = $this->profileModel->getByUserId($id);
+
         $data = [
             'title'      => 'Edit User',
             'page_title' => 'Edit User',
             'user_edit'  => $user,
             'groups'     => $authGroups->groups,
             'userGroups' => $user->getGroups(),
+            'profile'    => $profile,
         ];
 
         return $this->renderView('users/edit', $data);
@@ -186,6 +205,14 @@ class UserController extends BaseController
         }
 
         $this->userModel->save($user);
+
+        // Update customer profile
+        $this->profileModel->saveProfile($id, [
+            'nama_usaha' => $this->request->getPost('nama_usaha'),
+            'no_telp'    => $this->request->getPost('no_telp'),
+            'propinsi'   => $this->request->getPost('propinsi'),
+            'kabupaten'  => $this->request->getPost('kabupaten'),
+        ]);
 
         // Update groups jika ada (multi-group support)
         $groups = $this->request->getPost('groups');
