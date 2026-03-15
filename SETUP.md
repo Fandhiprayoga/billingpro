@@ -860,6 +860,268 @@ Profil pelanggan terintegrasi di 3 tempat:
 
 ---
 
+## Modul Canvassing (Sales Management)
+
+Modul canvassing memungkinkan **Manager** (sales) mengelola customer yang di-assign kepadanya — membuat order, upload bukti bayar, mengelola lisensi, membuat trial lisensi, serta approve/reject order. Semua aktivitas tercatat dalam log aktivitas.
+
+### Alur Kerja (Flow)
+
+```
+Admin assign Customer ke Manager
+    → Manager lihat data Customer di dashboard
+    → Manager buat Order untuk Customer
+    → Manager upload Bukti Bayar
+    → Manager approve/reject Order
+        → Approve → License Key otomatis di-generate
+        → Reject → Order dibatalkan
+    → Manager bisa buat Trial Lisensi untuk Customer
+    → Manager bisa request perpanjangan Lisensi
+```
+
+### Akses Berdasarkan Role
+
+| Fitur | Superadmin | Admin | Manager | User |
+|-------|-----------|-------|---------|------|
+| Assign customer ke manager | ✅ | ✅ | ❌ | ❌ |
+| Dashboard canvassing | ✅ | ❌ | ✅ | ❌ |
+| Lihat customer yang di-assign | ✅ | ✅ | ✅ | ❌ |
+| Buat order untuk customer | ✅ | ❌ | ✅ | ❌ |
+| Upload bukti bayar customer | ✅ | ❌ | ✅ | ❌ |
+| Approve/Reject order | ✅ | ❌ | ✅ | ❌ |
+| Kelola lisensi customer | ✅ | ❌ | ✅ | ❌ |
+| Buat trial lisensi | ✅ | ❌ | ✅ | ❌ |
+| Log aktivitas canvassing | ✅ | ❌ | ✅ | ❌ |
+
+### Permissions
+
+| Permission | Deskripsi |
+|-----------|-----------|
+| `canvassing.dashboard` | Dapat mengakses dashboard canvassing |
+| `canvassing.customers.list` | Dapat melihat daftar customer |
+| `canvassing.customers.view` | Dapat melihat detail customer |
+| `canvassing.orders.list` | Dapat melihat order customer |
+| `canvassing.orders.create` | Dapat membuat order untuk customer |
+| `canvassing.orders.approve` | Dapat menyetujui order customer |
+| `canvassing.orders.reject` | Dapat menolak order customer |
+| `canvassing.payments.upload` | Dapat upload bukti bayar untuk customer |
+| `canvassing.licenses.list` | Dapat melihat lisensi customer |
+| `canvassing.licenses.renew` | Dapat request perpanjangan lisensi customer |
+| `canvassing.trials.list` | Dapat melihat trial lisensi customer |
+| `canvassing.trials.create` | Dapat membuat trial lisensi untuk customer |
+| `canvassing.trials.view` | Dapat melihat detail trial lisensi customer |
+| `canvassing.activity.view` | Dapat melihat log aktivitas canvassing |
+| `canvassing.assign` | Dapat assign customer ke manager (khusus Admin) |
+
+### Database Schema
+
+#### Tabel `manager_customers`
+
+| Kolom | Tipe | Deskripsi |
+|-------|------|-----------|
+| `id` | INT (PK) | Primary key |
+| `manager_id` | INT (FK → users.id) | Manager yang mengelola |
+| `customer_id` | INT (FK → users.id) | Customer yang di-assign |
+| `assigned_at` | DATETIME | Waktu assignment |
+| `status` | ENUM('active', 'inactive') | Status assignment |
+| `notes` | TEXT | Catatan tambahan |
+| `created_at` | DATETIME | Timestamp dibuat |
+| `updated_at` | DATETIME | Timestamp diperbarui |
+
+> **Unique Constraint:** Kombinasi (`manager_id`, `customer_id`) harus unik.
+
+#### Tabel `manager_activity_logs`
+
+| Kolom | Tipe | Deskripsi |
+|-------|------|-----------|
+| `id` | INT (PK) | Primary key |
+| `manager_id` | INT (FK → users.id) | Manager yang melakukan aksi |
+| `customer_id` | INT (FK → users.id) | Customer yang terkait |
+| `action_type` | ENUM | Jenis aksi (lihat tabel di bawah) |
+| `reference_id` | INT | ID referensi (order/license/payment) |
+| `reference_type` | VARCHAR(50) | Tipe referensi: `order`, `license`, `payment_confirmation` |
+| `description` | TEXT | Deskripsi aksi |
+| `ip_address` | VARCHAR(45) | IP address manager |
+| `created_at` | DATETIME | Timestamp aksi |
+
+**Action Types:**
+
+| Action Type | Label | Ikon |
+|------------|-------|------|
+| `create_order` | Buat Order | `fa-cart-plus` |
+| `upload_payment` | Upload Bukti Bayar | `fa-upload` |
+| `manage_license` | Kelola Lisensi | `fa-key` |
+| `view_profile` | Lihat Profil | `fa-eye` |
+| `assign_customer` | Assign Customer | `fa-user-plus` |
+| `unassign_customer` | Unassign Customer | `fa-user-minus` |
+| `create_trial` | Buat Trial | `fa-flask` |
+| `approve_order` | Setujui Order | `fa-check-circle` |
+| `reject_order` | Tolak Order | `fa-times-circle` |
+
+#### Kolom Tambahan pada Tabel Existing
+
+| Tabel | Kolom Baru | Tipe | Deskripsi |
+|-------|-----------|------|-----------|
+| `orders` | `created_by_manager_id` | INT (nullable) | Manager yang membuat order |
+| `payment_confirmations` | `uploaded_by_manager_id` | INT (nullable) | Manager yang upload bukti bayar |
+
+### Migrations
+
+| File | Deskripsi |
+|------|-----------|
+| `2026-03-15-020000_CreateManagerCustomersTable` | Membuat tabel `manager_customers` |
+| `2026-03-15-030000_CreateManagerActivityLogsTable` | Membuat tabel `manager_activity_logs` |
+| `2026-03-15-040000_AddManagerFieldsToOrdersAndPayments` | Menambah kolom manager di `orders` & `payment_confirmations` |
+| `2026-03-15-050000_AddCreateTrialToActivityLogEnum` | Menambah `create_trial` ke ENUM `action_type` |
+| `2026-03-15-060000_AddApproveRejectToActivityLogEnum` | Menambah `approve_order` & `reject_order` ke ENUM `action_type` |
+
+### Struktur Controller & Route
+
+#### Route Manager (prefix: `/canvassing`)
+
+Semua route dalam group ini dilindungi filter `permission:canvassing.dashboard`.
+
+```php
+// Dashboard & Activity Log
+GET  /canvassing/dashboard                              → CanvassingDashboardController::index
+GET  /canvassing/activity-log                           → CanvassingDashboardController::activityLog
+GET  /canvassing/activity-log/ajax                      → CanvassingDashboardController::activityLogAjax
+
+// Customer Management
+GET  /canvassing/my-customers                           → CustomerController::index
+GET  /canvassing/my-customers/ajax                      → CustomerController::ajax
+GET  /canvassing/my-customers/(:num)                    → CustomerController::detail/$1
+
+// Order Management
+GET  /canvassing/customer-orders                        → CustomerOrderController::index
+GET  /canvassing/customer-orders/ajax                   → CustomerOrderController::ajax
+GET  /canvassing/customer-orders/create/(:num)          → CustomerOrderController::create/$1
+POST /canvassing/customer-orders/store/(:num)           → CustomerOrderController::store/$1
+GET  /canvassing/customer-orders/view/(:segment)        → CustomerOrderController::view/$1
+POST /canvassing/customer-orders/approve/(:segment)     → CustomerOrderController::approve/$1
+POST /canvassing/customer-orders/reject/(:segment)      → CustomerOrderController::reject/$1
+
+// Payment Proof
+GET  /canvassing/customer-orders/upload-proof/(:segment)  → CustomerPaymentController::uploadForm/$1
+POST /canvassing/customer-orders/submit-proof/(:segment)  → CustomerPaymentController::submitProof/$1
+
+// License Management
+GET  /canvassing/customer-licenses                      → CustomerLicenseController::index
+GET  /canvassing/customer-licenses/ajax                 → CustomerLicenseController::ajax
+GET  /canvassing/customer-licenses/(:segment)           → CustomerLicenseController::detail/$1
+GET  /canvassing/customer-licenses/renew/(:segment)     → CustomerLicenseController::renew/$1
+POST /canvassing/customer-licenses/store-renewal/(:segment) → CustomerLicenseController::storeRenewal/$1
+
+// Trial License
+GET  /canvassing/customer-trials                        → CustomerTrialController::index
+GET  /canvassing/customer-trials/ajax                   → CustomerTrialController::ajax
+GET  /canvassing/customer-trials/create/(:num)          → CustomerTrialController::create/$1
+POST /canvassing/customer-trials/store/(:num)           → CustomerTrialController::store/$1
+GET  /canvassing/customer-trials/view/(:segment)        → CustomerTrialController::view/$1
+```
+
+#### Route Admin (prefix: `/admin/canvassing-assign`)
+
+Dilindungi filter `permission:admin.access` + `permission:canvassing.assign`.
+
+```php
+GET  /admin/canvassing-assign/                          → AssignController::index
+GET  /admin/canvassing-assign/ajax                      → AssignController::ajax
+POST /admin/canvassing-assign/store                     → AssignController::store
+POST /admin/canvassing-assign/remove/(:num)             → AssignController::remove/$1
+```
+
+### Struktur File
+
+```
+app/
+├── Controllers/
+│   └── Canvassing/
+│       ├── CanvassingDashboardController.php   # Dashboard & log aktivitas
+│       ├── CustomerController.php              # Kelola customer
+│       ├── CustomerOrderController.php         # Kelola order customer
+│       ├── CustomerPaymentController.php       # Upload bukti bayar
+│       ├── CustomerLicenseController.php       # Kelola lisensi customer
+│       ├── CustomerTrialController.php         # Kelola trial lisensi
+│       └── AssignController.php                # Admin: assign customer
+├── Models/
+│   ├── ManagerCustomerModel.php                # Model assignment manager-customer
+│   └── ManagerActivityLogModel.php             # Model log aktivitas
+├── Database/
+│   └── Migrations/
+│       ├── 2026-03-15-020000_CreateManagerCustomersTable.php
+│       ├── 2026-03-15-030000_CreateManagerActivityLogsTable.php
+│       ├── 2026-03-15-040000_AddManagerFieldsToOrdersAndPayments.php
+│       ├── 2026-03-15-050000_AddCreateTrialToActivityLogEnum.php
+│       └── 2026-03-15-060000_AddApproveRejectToActivityLogEnum.php
+└── Views/
+    └── canvassing/
+        ├── dashboard.php                       # Dashboard manager
+        ├── activity_log.php                    # Log aktivitas + filter
+        ├── assign/
+        │   └── index.php                      # Admin: halaman assign
+        ├── customers/
+        │   ├── index.php                      # Daftar customer
+        │   └── detail.php                     # Detail customer
+        ├── orders/
+        │   ├── index.php                      # Daftar order
+        │   ├── create.php                     # Form buat order
+        │   ├── view.php                       # Detail order + approve/reject
+        │   └── upload_proof.php               # Form upload bukti bayar
+        ├── licenses/
+        │   ├── index.php                      # Daftar lisensi
+        │   ├── detail.php                     # Detail lisensi
+        │   └── renew.php                      # Form perpanjangan
+        └── trials/
+            ├── index.php                      # Daftar trial
+            ├── create.php                     # Form buat trial
+            └── view.php                       # Detail trial
+```
+
+### Menu Sidebar
+
+#### Untuk Manager
+
+```
+📋 Canvassing
+├── Dashboard          (fas fa-tachometer-alt)
+├── Customer Saya      (fas fa-users)
+├── Order Customer     (fas fa-shopping-cart)
+├── Lisensi Customer   (fas fa-key)
+├── Trial Lisensi      (fas fa-flask)
+└── Log Aktivitas      (fas fa-history)
+```
+
+#### Untuk Admin
+
+```
+📋 Canvassing
+└── Assign Customer    (fas fa-user-friends)
+```
+
+### Fitur Dashboard Manager
+
+Dashboard manager menampilkan:
+
+| Stat Card | Deskripsi |
+|-----------|-----------|
+| Total Customer | Jumlah customer yang di-assign |
+| Total Order | Jumlah order dari customer |
+| Trial Aktif | Jumlah trial lisensi yang masih aktif |
+| Dibatalkan | Jumlah order yang dibatalkan/ditolak |
+
+Ditambah:
+- **Tabel Aktivitas Terbaru** — 10 aktivitas terakhir dengan badge warna per action type
+- **Quick Links** — Shortcut ke halaman canvassing utama
+
+### Log Aktivitas
+
+Halaman log aktivitas mendukung filter:
+- **Rentang Tanggal** — Filter berdasarkan datetime range
+- **Customer** — Filter berdasarkan customer tertentu (Select2 dropdown)
+- **Jenis Aksi** — Filter berdasarkan action type (Select2 dropdown)
+
+---
+
 ## Lisensi
 
 MIT License

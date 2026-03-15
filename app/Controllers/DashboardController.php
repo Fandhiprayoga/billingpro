@@ -5,6 +5,8 @@ namespace App\Controllers;
 use App\Models\OrderModel;
 use App\Models\LicenseModel;
 use App\Models\PlanModel;
+use App\Models\ManagerCustomerModel;
+use App\Models\ManagerActivityLogModel;
 
 class DashboardController extends BaseController
 {
@@ -12,14 +14,68 @@ class DashboardController extends BaseController
     {
         $user   = auth()->user();
         $userId = auth()->id();
-        $isAdmin = activeGroupCan('admin.access');
+        $isAdmin   = activeGroupCan('admin.access');
+        $isManager = activeGroupCan('canvassing.dashboard');
 
         $orderModel   = new OrderModel();
         $licenseModel = new LicenseModel();
         $planModel    = new PlanModel();
 
         // ---- Statistik Order ----
-        if ($isAdmin) {
+        if ($isManager && !activeGroupCan('orders.list')) {
+            // Manager: statistik customer canvassing
+            $mcModel      = new ManagerCustomerModel();
+            $customerIds  = $mcModel->getCustomerIds($userId);
+
+            if (empty($customerIds)) {
+                $orderStats       = ['pending' => 0, 'awaiting_confirmation' => 0, 'paid' => 0, 'cancelled' => 0, 'expired' => 0, 'total' => 0];
+                $activeLicenses   = 0;
+                $expiringLicenses = [];
+                $totalCustomers   = 0;
+                $activeTrials     = 0;
+            } else {
+                $orderStats = [
+                    'pending'               => $orderModel->whereIn('orders.user_id', $customerIds)->where('orders.status', 'pending')->countAllResults(),
+                    'awaiting_confirmation' => $orderModel->whereIn('orders.user_id', $customerIds)->where('orders.status', 'awaiting_confirmation')->countAllResults(),
+                    'paid'                  => $orderModel->whereIn('orders.user_id', $customerIds)->where('orders.status', 'paid')->countAllResults(),
+                    'cancelled'             => $orderModel->whereIn('orders.user_id', $customerIds)->where('orders.status', 'cancelled')->countAllResults(),
+                    'expired'               => $orderModel->whereIn('orders.user_id', $customerIds)->where('orders.status', 'expired')->countAllResults(),
+                    'total'                 => $orderModel->whereIn('orders.user_id', $customerIds)->countAllResults(),
+                ];
+
+                $activeLicenses = $licenseModel
+                    ->whereIn('licenses.user_id', $customerIds)
+                    ->where('licenses.status', 'active')
+                    ->where('licenses.expires_at >=', date('Y-m-d H:i:s'))
+                    ->where('licenses.is_trial', 0)
+                    ->countAllResults();
+
+                $expiringLicenses = $licenseModel
+                    ->select('licenses.*, licenses.uuid, plans.name as plan_name, users.username')
+                    ->join('plans', 'plans.id = licenses.plan_id', 'left')
+                    ->join('users', 'users.id = licenses.user_id', 'left')
+                    ->whereIn('licenses.user_id', $customerIds)
+                    ->where('licenses.status', 'active')
+                    ->where('licenses.is_trial', 0)
+                    ->where('licenses.expires_at >=', date('Y-m-d H:i:s'))
+                    ->where('licenses.expires_at <=', date('Y-m-d H:i:s', strtotime('+14 days')))
+                    ->orderBy('licenses.expires_at', 'ASC')
+                    ->findAll();
+
+                $totalCustomers = count($customerIds);
+
+                $activeTrials = $licenseModel
+                    ->whereIn('licenses.user_id', $customerIds)
+                    ->where('licenses.status', 'active')
+                    ->where('licenses.is_trial', 1)
+                    ->where('licenses.expires_at >=', date('Y-m-d H:i:s'))
+                    ->countAllResults();
+            }
+
+            $logModel       = new ManagerActivityLogModel();
+            $recentActivity = $logModel->getLogsByManager($userId, 5);
+            $pendingOrders  = [];
+        } elseif ($isAdmin) {
             // Admin: semua order
             $orderStats = [
                 'pending'               => $orderModel->where('orders.status', 'pending')->countAllResults(),
@@ -112,6 +168,10 @@ class DashboardController extends BaseController
             'pendingOrders'    => $pendingOrders ?? [],
             'plans'            => $plans,
             'bankInfo'         => $bankInfo,
+            'isManager'        => $isManager && !activeGroupCan('orders.list'),
+            'totalCustomers'   => $totalCustomers ?? 0,
+            'activeTrials'     => $activeTrials ?? 0,
+            'recentActivity'   => $recentActivity ?? [],
         ];
 
         return $this->renderView('dashboard/index', $data);

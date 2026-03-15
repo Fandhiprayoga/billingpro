@@ -158,6 +158,59 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         });
     });
 
+    // ---------------------------------------------------------------
+    // Canvassing Routes (manager mengelola customer)
+    // ---------------------------------------------------------------
+    $routes->group('canvassing', ['filter' => 'permission:canvassing.dashboard'], static function ($routes) {
+        $routes->get('dashboard', 'Canvassing\CanvassingDashboardController::index');
+        $routes->get('activity-log', 'Canvassing\CanvassingDashboardController::activityLog');
+        $routes->get('activity-log/ajax', 'Canvassing\CanvassingDashboardController::activityLogAjax');
+
+        // My Customers
+        $routes->get('my-customers', 'Canvassing\CustomerController::index', ['filter' => 'permission:canvassing.customers.list']);
+        $routes->get('my-customers/ajax', 'Canvassing\CustomerController::ajax', ['filter' => 'permission:canvassing.customers.list']);
+        $routes->get('my-customers/(:num)', 'Canvassing\CustomerController::detail/$1', ['filter' => 'permission:canvassing.customers.view']);
+
+        // Customer Orders
+        $routes->get('customer-orders', 'Canvassing\CustomerOrderController::index', ['filter' => 'permission:canvassing.orders.list']);
+        $routes->get('customer-orders/ajax', 'Canvassing\CustomerOrderController::ajax', ['filter' => 'permission:canvassing.orders.list']);
+        $routes->get('customer-orders/create/(:num)', 'Canvassing\CustomerOrderController::create/$1', ['filter' => 'permission:canvassing.orders.create']);
+        $routes->post('customer-orders/store/(:num)', 'Canvassing\CustomerOrderController::store/$1', ['filter' => 'permission:canvassing.orders.create']);
+        $routes->get('customer-orders/view/(:segment)', 'Canvassing\CustomerOrderController::view/$1', ['filter' => 'permission:canvassing.orders.list']);
+        $routes->post('customer-orders/approve/(:segment)', 'Canvassing\CustomerOrderController::approve/$1', ['filter' => 'permission:canvassing.orders.approve']);
+        $routes->post('customer-orders/reject/(:segment)', 'Canvassing\CustomerOrderController::reject/$1', ['filter' => 'permission:canvassing.orders.reject']);
+
+        // Customer Payment Upload
+        $routes->get('customer-orders/upload-proof/(:segment)', 'Canvassing\CustomerPaymentController::uploadForm/$1', ['filter' => 'permission:canvassing.payments.upload']);
+        $routes->post('customer-orders/submit-proof/(:segment)', 'Canvassing\CustomerPaymentController::submitProof/$1', ['filter' => 'permission:canvassing.payments.upload']);
+
+        // Customer Licenses
+        $routes->get('customer-licenses', 'Canvassing\CustomerLicenseController::index', ['filter' => 'permission:canvassing.licenses.list']);
+        $routes->get('customer-licenses/ajax', 'Canvassing\CustomerLicenseController::ajax', ['filter' => 'permission:canvassing.licenses.list']);
+        $routes->get('customer-licenses/(:segment)', 'Canvassing\CustomerLicenseController::detail/$1', ['filter' => 'permission:canvassing.licenses.list']);
+        $routes->get('customer-licenses/renew/(:segment)', 'Canvassing\CustomerLicenseController::renew/$1', ['filter' => 'permission:canvassing.licenses.renew']);
+        $routes->post('customer-licenses/store-renewal/(:segment)', 'Canvassing\CustomerLicenseController::storeRenewal/$1', ['filter' => 'permission:canvassing.licenses.renew']);
+
+        // Customer Trial Licenses
+        $routes->get('customer-trials', 'Canvassing\CustomerTrialController::index', ['filter' => 'permission:canvassing.trials.list']);
+        $routes->get('customer-trials/ajax', 'Canvassing\CustomerTrialController::ajax', ['filter' => 'permission:canvassing.trials.list']);
+        $routes->get('customer-trials/create/(:num)', 'Canvassing\CustomerTrialController::create/$1', ['filter' => 'permission:canvassing.trials.create']);
+        $routes->post('customer-trials/store/(:num)', 'Canvassing\CustomerTrialController::store/$1', ['filter' => 'permission:canvassing.trials.create']);
+        $routes->get('customer-trials/view/(:segment)', 'Canvassing\CustomerTrialController::view/$1', ['filter' => 'permission:canvassing.trials.view']);
+    });
+
+    // ---------------------------------------------------------------
+    // Admin: Assign Customer to Manager
+    // ---------------------------------------------------------------
+    $routes->group('admin', ['filter' => 'permission:admin.access'], static function ($routes) {
+        $routes->group('canvassing-assign', ['filter' => 'permission:canvassing.assign'], static function ($routes) {
+            $routes->get('/', 'Canvassing\AssignController::index');
+            $routes->get('ajax', 'Canvassing\AssignController::ajax');
+            $routes->post('store', 'Canvassing\AssignController::store');
+            $routes->post('remove/(:num)', 'Canvassing\AssignController::remove/$1');
+        });
+    });
+
     // Serve uploaded files securely from writable/uploads
     $routes->get('uploads/(:any)', 'FileController::serve/$1');
 });

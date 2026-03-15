@@ -12,6 +12,7 @@ class PaymentConfirmationModel extends Model
         'order_id', 'user_id', 'bank_name', 'account_name',
         'account_number', 'transfer_amount', 'transfer_date',
         'proof_image', 'status', 'admin_notes', 'reviewed_by', 'reviewed_at',
+        'uploaded_by_manager_id',
     ];
     protected $useTimestamps = true;
     protected $returnType    = 'object';

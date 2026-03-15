@@ -32,12 +32,12 @@ function isDropdownActive(array $paths): string {
 
       <!-- Dashboard -->
       <li class="menu-header">Dashboard</li>
-      <li class="<?= isMenuActive('dashboard') && !str_contains($currentUrl, 'admin') ? 'active' : '' ?>">
+      <li class="<?= isMenuActive('dashboard') && !str_contains($currentUrl, 'admin') && !str_contains($currentUrl, 'canvassing') ? 'active' : '' ?>">
         <a class="nav-link" href="<?= base_url('dashboard') ?>"><i class="fas fa-fire"></i> <span>Dashboard</span></a>
       </li>
 
       <!-- Admin Menu (hanya untuk active group yang punya akses admin) -->
-      <?php if (activeGroupCan('admin.access')): ?>
+      <?php if (activeGroupCan('admin.access') && (activeGroupCan('users.list') || activeGroupIs('superadmin') || activeGroupCan('admin.settings'))): ?>
       <li class="menu-header">Administrasi</li>
 
       <!-- User Management -->
@@ -112,6 +112,47 @@ function isDropdownActive(array $paths): string {
       </li>
       <?php endif; ?>
 
+      <!-- Admin: Canvassing Assign -->
+      <?php if (activeGroupCan('canvassing.assign')): ?>
+      <li class="menu-header">Canvassing</li>
+      <li class="<?= isMenuActive('admin/canvassing-assign') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('admin/canvassing-assign') ?>"><i class="fas fa-user-friends"></i> <span>Assign Customer</span></a>
+      </li>
+      <?php endif; ?>
+
+      <?php endif; ?>
+
+      <!-- Canvassing Menu (untuk manager) -->
+      <?php if (activeGroupCan('canvassing.dashboard')): ?>
+      <li class="menu-header">Canvassing</li>
+      <li class="<?= isMenuActive('canvassing/dashboard') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('canvassing/dashboard') ?>"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a>
+      </li>
+      <?php if (activeGroupCan('canvassing.customers.list')): ?>
+      <li class="<?= isMenuActive('canvassing/my-customers') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('canvassing/my-customers') ?>"><i class="fas fa-users"></i> <span>Customer Saya</span></a>
+      </li>
+      <?php endif; ?>
+      <?php if (activeGroupCan('canvassing.orders.list')): ?>
+      <li class="<?= isMenuActive('canvassing/customer-orders') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('canvassing/customer-orders') ?>"><i class="fas fa-shopping-cart"></i> <span>Order Customer</span></a>
+      </li>
+      <?php endif; ?>
+      <?php if (activeGroupCan('canvassing.licenses.list')): ?>
+      <li class="<?= isMenuActive('canvassing/customer-licenses') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('canvassing/customer-licenses') ?>"><i class="fas fa-key"></i> <span>Lisensi Customer</span></a>
+      </li>
+      <?php endif; ?>
+      <?php if (activeGroupCan('canvassing.trials.list')): ?>
+      <li class="<?= isMenuActive('canvassing/customer-trials') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('canvassing/customer-trials') ?>"><i class="fas fa-flask"></i> <span>Trial Lisensi</span></a>
+      </li>
+      <?php endif; ?>
+      <?php if (activeGroupCan('canvassing.activity.view')): ?>
+      <li class="<?= isMenuActive('canvassing/activity-log') ? 'active' : '' ?>">
+        <a class="nav-link" href="<?= base_url('canvassing/activity-log') ?>"><i class="fas fa-history"></i> <span>Log Aktivitas</span></a>
+      </li>
+      <?php endif; ?>
       <?php endif; ?>
 
       <!-- User Billing Menu (untuk user biasa yang BUKAN admin) -->

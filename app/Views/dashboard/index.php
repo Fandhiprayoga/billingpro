@@ -2,7 +2,7 @@
 $currentUser = auth()->user();
 $groups = $currentUser->getGroups();
 $groupLabel = activeGroupTitle();
-$isAdmin = activeGroupCan('admin.access');
+$isAdmin = activeGroupCan('admin.access') && !($isManager ?? false);
 ?>
 
 <h2 class="section-title">Selamat Datang, <?= esc($currentUser->username) ?>!</h2>
@@ -24,6 +24,8 @@ $isAdmin = activeGroupCan('admin.access');
         <div class="alert-title">Reminder Perpanjangan Lisensi</div>
         <?php if ($isAdmin): ?>
           <p class="mb-2">Ada <strong><?= count($expiringLicenses) ?></strong> lisensi yang akan expired dalam 7 hari ke depan:</p>
+        <?php elseif ($isManager ?? false): ?>
+          <p class="mb-2">Ada <strong><?= count($expiringLicenses) ?></strong> lisensi customer yang akan expired dalam 14 hari ke depan:</p>
         <?php else: ?>
           <p class="mb-2">Lisensi berikut akan segera berakhir. Segera perpanjang agar layanan tidak terganggu:</p>
         <?php endif; ?>
@@ -33,7 +35,7 @@ $isAdmin = activeGroupCan('admin.access');
               <tr>
                 <th>License Key</th>
                 <th>Paket</th>
-                <?php if ($isAdmin): ?><th>User</th><?php endif; ?>
+                <?php if ($isAdmin || ($isManager ?? false)): ?><th>User</th><?php endif; ?>
                 <th>Expired</th>
                 <th>Sisa Hari</th>
                 <th>Aksi</th>
@@ -48,12 +50,14 @@ $isAdmin = activeGroupCan('admin.access');
               <tr>
                 <td><code><?= esc($lic->license_key) ?></code></td>
                 <td><?= esc($lic->plan_name ?? '-') ?></td>
-                <?php if ($isAdmin): ?><td><?= esc($lic->username ?? '-') ?></td><?php endif; ?>
+                <?php if ($isAdmin || ($isManager ?? false)): ?><td><?= esc($lic->username ?? '-') ?></td><?php endif; ?>
                 <td><?= date('d/m/Y', strtotime($lic->expires_at)) ?></td>
                 <td><span class="<?= $urgency ?>"><?= $daysLeft ?> hari</span></td>
                 <td>
                   <?php if ($isAdmin): ?>
                     <a href="<?= base_url('admin/licenses/view/' . $lic->uuid) ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
+                  <?php elseif ($isManager ?? false): ?>
+                    <a href="<?= base_url('canvassing/customer-licenses/' . $lic->uuid) ?>" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>
                   <?php else: ?>
                     <a href="<?= base_url('my-orders/create?plan=' . $lic->plan_id) ?>" class="btn btn-sm btn-warning"><i class="fas fa-redo"></i> Perpanjang</a>
                   <?php endif; ?>
@@ -134,6 +138,107 @@ $isAdmin = activeGroupCan('admin.access');
     </div>
   </div>
 </div>
+
+<?php if ($isManager ?? false): ?>
+<!-- ============================================ -->
+<!-- MANAGER: Stat Canvassing -->
+<!-- ============================================ -->
+<div class="row">
+  <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+    <div class="card card-statistic-1">
+      <div class="card-icon bg-primary">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="card-wrap">
+        <div class="card-header"><h4>Total Customer</h4></div>
+        <div class="card-body"><?= $totalCustomers ?></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+    <div class="card card-statistic-1">
+      <div class="card-icon bg-info">
+        <i class="fas fa-shopping-cart"></i>
+      </div>
+      <div class="card-wrap">
+        <div class="card-header"><h4>Total Order</h4></div>
+        <div class="card-body"><?= $orderStats['total'] ?></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+    <div class="card card-statistic-1">
+      <div class="card-icon bg-warning">
+        <i class="fas fa-flask"></i>
+      </div>
+      <div class="card-wrap">
+        <div class="card-header"><h4>Trial Aktif</h4></div>
+        <div class="card-body"><?= $activeTrials ?></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+    <div class="card card-statistic-1">
+      <div class="card-icon bg-danger">
+        <i class="fas fa-times-circle"></i>
+      </div>
+      <div class="card-wrap">
+        <div class="card-header"><h4>Dibatalkan</h4></div>
+        <div class="card-body"><?= $orderStats['cancelled'] ?></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Aktivitas Terbaru (Manager) -->
+<?php if (!empty($recentActivity)): ?>
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h4><i class="fas fa-history text-info"></i> Aktivitas Terbaru</h4>
+        <div class="card-header-action">
+          <a href="<?= base_url('canvassing/activity-log') ?>" class="btn btn-primary btn-sm">Lihat Semua <i class="fas fa-chevron-right"></i></a>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-striped mb-0">
+            <thead>
+              <tr><th>Waktu</th><th>Customer</th><th>Aksi</th><th>Keterangan</th></tr>
+            </thead>
+            <tbody>
+              <?php
+                $actionBadges = [
+                  'create_order'      => ['badge-primary', 'fa-cart-plus', 'Buat Order'],
+                  'upload_payment'    => ['badge-success', 'fa-upload', 'Upload Bukti'],
+                  'manage_license'    => ['badge-warning', 'fa-key', 'Kelola Lisensi'],
+                  'view_profile'      => ['badge-info', 'fa-eye', 'Lihat Profil'],
+                  'assign_customer'   => ['badge-secondary', 'fa-user-plus', 'Assign'],
+                  'unassign_customer' => ['badge-danger', 'fa-user-minus', 'Unassign'],
+                  'create_trial'      => ['badge-warning', 'fa-flask', 'Buat Trial'],
+                  'approve_order'     => ['badge-success', 'fa-check-circle', 'Setujui Order'],
+                  'reject_order'      => ['badge-danger', 'fa-times-circle', 'Tolak Order'],
+                ];
+              ?>
+              <?php foreach ($recentActivity as $act): ?>
+              <?php $b = $actionBadges[$act->action_type] ?? ['badge-light', 'fa-circle', $act->action_type]; ?>
+              <tr>
+                <td><?= date('d/m/Y H:i', strtotime($act->created_at)) ?></td>
+                <td><?= esc($act->customer_username) ?></td>
+                <td><span class="badge <?= $b[0] ?>"><i class="fas <?= $b[1] ?>"></i> <?= $b[2] ?></span></td>
+                <td><?= esc($act->description ?? '-') ?></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+<?php endif; ?>
 
 <?php if ($isAdmin): ?>
 <!-- ============================================ -->
@@ -398,7 +503,7 @@ $isAdmin = activeGroupCan('admin.access');
           </div>
           <?php endif; ?>
 
-          <?php if (!$isAdmin): ?>
+          <?php if (!$isAdmin && !($isManager ?? false)): ?>
           <div class="col-6 mb-3">
             <a href="<?= base_url('my-orders') ?>" class="btn btn-success btn-block">
               <i class="fas fa-shopping-cart"></i><br>Order Saya
@@ -407,6 +512,29 @@ $isAdmin = activeGroupCan('admin.access');
           <div class="col-6 mb-3">
             <a href="<?= base_url('my-licenses') ?>" class="btn btn-dark btn-block">
               <i class="fas fa-key"></i><br>Lisensi Saya
+            </a>
+          </div>
+          <?php endif; ?>
+
+          <?php if ($isManager ?? false): ?>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('canvassing/dashboard') ?>" class="btn btn-primary btn-block">
+              <i class="fas fa-tachometer-alt"></i><br>Canvassing
+            </a>
+          </div>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('canvassing/my-customers') ?>" class="btn btn-success btn-block">
+              <i class="fas fa-users"></i><br>Customer Saya
+            </a>
+          </div>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('canvassing/customer-orders') ?>" class="btn btn-warning btn-block">
+              <i class="fas fa-shopping-cart"></i><br>Order Customer
+            </a>
+          </div>
+          <div class="col-6 mb-3">
+            <a href="<?= base_url('canvassing/customer-licenses') ?>" class="btn btn-dark btn-block">
+              <i class="fas fa-key"></i><br>Lisensi Customer
             </a>
           </div>
           <?php endif; ?>
@@ -432,7 +560,7 @@ $isAdmin = activeGroupCan('admin.access');
 <!-- ============================================ -->
 <!-- PILIH PAKET (User biasa) -->
 <!-- ============================================ -->
-<?php if (!$isAdmin && !empty($plans)): ?>
+<?php if (!$isAdmin && !($isManager ?? false) && !empty($plans)): ?>
 <div class="row">
   <div class="col-12">
     <div class="section-title mt-0">Pilih Paket Lisensi</div>
