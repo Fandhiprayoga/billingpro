@@ -22,14 +22,14 @@ class SettingController extends BaseController
         'App.maintenanceMsg'  => 'Sistem sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.',
         'AuthGroups.defaultGroup' => 'user',
         'Auth.allowRegistration'  => true,
-        'Mail.protocol'       => 'smtp',
-        'Mail.hostname'       => '',
-        'Mail.port'           => '587',
-        'Mail.username'       => '',
-        'Mail.password'       => '',
-        'Mail.encryption'     => 'tls',
-        'Mail.fromEmail'      => 'noreply@example.com',
-        'Mail.fromName'       => 'CI4 RBAC',
+        'Email.protocol'      => 'smtp',
+        'Email.SMTPHost'      => '',
+        'Email.SMTPPort'      => 587,
+        'Email.SMTPUser'      => '',
+        'Email.SMTPPass'      => '',
+        'Email.SMTPCrypto'    => 'tls',
+        'Email.fromEmail'     => 'noreply@example.com',
+        'Email.fromName'      => 'CI4 RBAC',
     ];
 
     /**
@@ -160,21 +160,69 @@ class SettingController extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        setting('Mail.protocol', $this->request->getPost('mail_protocol'));
-        setting('Mail.hostname', $this->request->getPost('mail_hostname') ?? '');
-        setting('Mail.port', $this->request->getPost('mail_port') ?? '587');
-        setting('Mail.username', $this->request->getPost('mail_username') ?? '');
-        setting('Mail.encryption', $this->request->getPost('mail_encryption'));
-        setting('Mail.fromEmail', $this->request->getPost('mail_from_email') ?? '');
-        setting('Mail.fromName', $this->request->getPost('mail_from_name') ?? '');
+        setting('Email.protocol', $this->request->getPost('mail_protocol'));
+        setting('Email.SMTPHost', $this->request->getPost('mail_hostname') ?? '');
+        setting('Email.SMTPPort', (int) ($this->request->getPost('mail_port') ?? 587));
+        setting('Email.SMTPUser', $this->request->getPost('mail_username') ?? '');
+        setting('Email.SMTPCrypto', $this->request->getPost('mail_encryption') === 'none' ? '' : $this->request->getPost('mail_encryption'));
+        setting('Email.fromEmail', $this->request->getPost('mail_from_email') ?? '');
+        setting('Email.fromName', $this->request->getPost('mail_from_name') ?? '');
 
         // Password hanya di-update jika diisi
         $password = $this->request->getPost('mail_password');
         if (! empty($password)) {
-            setting('Mail.password', $password);
+            setting('Email.SMTPPass', $password);
         }
 
         return redirect()->to('/admin/settings?tab=mail')->with('success', 'Pengaturan email berhasil diperbarui.');
+    }
+
+    /**
+     * Test kirim email dengan konfigurasi yang tersimpan
+     */
+    public function testMail()
+    {
+        $rules = [
+            'to'      => 'required|valid_email',
+            'subject' => 'permit_empty|max_length[255]',
+            'message' => 'permit_empty|max_length[2000]',
+        ];
+
+        if (! $this->validate($rules)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => implode(' ', $this->validator->getErrors()),
+            ]);
+        }
+
+        $to      = $this->request->getPost('to');
+        $subject = $this->request->getPost('subject') ?: 'Test Email';
+        $body    = $this->request->getPost('message') ?: 'Ini adalah email percobaan.';
+
+        $fromEmail = setting('Email.fromEmail') ?: 'noreply@example.com';
+        $fromName  = setting('Email.fromName') ?: 'CI4 RBAC';
+
+        helper('email');
+        $email = emailer(['mailType' => 'html']);
+        $email->setFrom($fromEmail, $fromName);
+        $email->setTo($to);
+        $email->setSubject($subject);
+        $email->setMessage($body);
+
+        if ($email->send(false)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Email berhasil dikirim ke ' . esc($to),
+            ]);
+        }
+
+        $debugMessage = $email->printDebugger(['headers', 'subject', 'body']);
+        log_message('error', 'Test email failed: ' . $debugMessage);
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Gagal mengirim email. Periksa konfigurasi SMTP Anda.',
+        ]);
     }
 
     /**

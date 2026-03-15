@@ -94,6 +94,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('update/general', 'SettingController::updateGeneral');
             $routes->post('update/auth', 'SettingController::updateAuth');
             $routes->post('update/mail', 'SettingController::updateMail');
+            $routes->post('test-mail', 'SettingController::testMail');
             $routes->post('delete-branding/(:segment)', 'SettingController::deleteBranding/$1');
         });
 

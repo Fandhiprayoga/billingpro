@@ -274,7 +274,7 @@ $s = function (string $key) use ($settings) {
                 <div class="col-sm-9">
                   <select class="form-control" id="mail_protocol" name="mail_protocol">
                     <?php
-                      $proto = $settings['Mail.protocol'] ?? 'smtp';
+                      $proto = $settings['Email.protocol'] ?? 'smtp';
                     ?>
                     <option value="smtp" <?= $proto === 'smtp' ? 'selected' : '' ?>>SMTP</option>
                     <option value="sendmail" <?= $proto === 'sendmail' ? 'selected' : '' ?>>Sendmail</option>
@@ -288,7 +288,7 @@ $s = function (string $key) use ($settings) {
                   <label for="mail_hostname" class="col-sm-3 col-form-label">SMTP Host</label>
                   <div class="col-sm-9">
                     <input type="text" class="form-control" id="mail_hostname" name="mail_hostname"
-                           value="<?= old('mail_hostname', $s('Mail.hostname')) ?>"
+                           value="<?= old('mail_hostname', $s('Email.SMTPHost')) ?>"
                            placeholder="smtp.gmail.com">
                   </div>
                 </div>
@@ -297,7 +297,7 @@ $s = function (string $key) use ($settings) {
                   <label for="mail_port" class="col-sm-3 col-form-label">Port</label>
                   <div class="col-sm-5">
                     <input type="number" class="form-control" id="mail_port" name="mail_port"
-                           value="<?= old('mail_port', $s('Mail.port')) ?>"
+                           value="<?= old('mail_port', $s('Email.SMTPPort')) ?>"
                            placeholder="587">
                   </div>
                 </div>
@@ -305,11 +305,11 @@ $s = function (string $key) use ($settings) {
                 <div class="form-group row">
                   <label for="mail_encryption" class="col-sm-3 col-form-label">Enkripsi</label>
                   <div class="col-sm-5">
-                    <?php $enc = $settings['Mail.encryption'] ?? 'tls'; ?>
+                    <?php $enc = $settings['Email.SMTPCrypto'] ?? 'tls'; ?>
                     <select class="form-control" id="mail_encryption" name="mail_encryption">
                       <option value="tls" <?= $enc === 'tls' ? 'selected' : '' ?>>TLS</option>
                       <option value="ssl" <?= $enc === 'ssl' ? 'selected' : '' ?>>SSL</option>
-                      <option value="none" <?= $enc === 'none' ? 'selected' : '' ?>>Tanpa Enkripsi</option>
+                      <option value="none" <?= ($enc === 'none' || $enc === '') ? 'selected' : '' ?>>Tanpa Enkripsi</option>
                     </select>
                   </div>
                 </div>
@@ -318,7 +318,7 @@ $s = function (string $key) use ($settings) {
                   <label for="mail_username" class="col-sm-3 col-form-label">Username</label>
                   <div class="col-sm-9">
                     <input type="text" class="form-control" id="mail_username" name="mail_username"
-                           value="<?= old('mail_username', $s('Mail.username')) ?>"
+                           value="<?= old('mail_username', $s('Email.SMTPUser')) ?>"
                            placeholder="email@gmail.com" autocomplete="off">
                   </div>
                 </div>
@@ -328,7 +328,7 @@ $s = function (string $key) use ($settings) {
                   <div class="col-sm-9">
                     <input type="password" class="form-control" id="mail_password" name="mail_password"
                            placeholder="Kosongkan jika tidak ingin mengubah" autocomplete="new-password">
-                    <?php if (! empty($settings['Mail.password'])): ?>
+                    <?php if (! empty($settings['Email.SMTPPass'])): ?>
                       <small class="form-text text-success"><i class="fas fa-check"></i> Password sudah diatur</small>
                     <?php endif; ?>
                   </div>
@@ -342,7 +342,7 @@ $s = function (string $key) use ($settings) {
                 <label for="mail_from_email" class="col-sm-3 col-form-label">Email Pengirim</label>
                 <div class="col-sm-9">
                   <input type="email" class="form-control" id="mail_from_email" name="mail_from_email"
-                         value="<?= old('mail_from_email', $s('Mail.fromEmail')) ?>"
+                         value="<?= old('mail_from_email', $s('Email.fromEmail')) ?>"
                          placeholder="noreply@example.com">
                 </div>
               </div>
@@ -351,7 +351,7 @@ $s = function (string $key) use ($settings) {
                 <label for="mail_from_name" class="col-sm-3 col-form-label">Nama Pengirim</label>
                 <div class="col-sm-9">
                   <input type="text" class="form-control" id="mail_from_name" name="mail_from_name"
-                         value="<?= old('mail_from_name', $s('Mail.fromName')) ?>"
+                         value="<?= old('mail_from_name', $s('Email.fromName')) ?>"
                          placeholder="My App">
                 </div>
               </div>
@@ -361,12 +361,51 @@ $s = function (string $key) use ($settings) {
                   <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Simpan Pengaturan Email
                   </button>
+                  <button type="button" class="btn btn-outline-info ml-2" data-toggle="modal" data-target="#testMailModal">
+                    <i class="fas fa-paper-plane"></i> Test Kirim Email
+                  </button>
                 </div>
               </div>
             </form>
           </div>
 
         </div><!-- end tab-content -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Test Email -->
+<div class="modal fade" id="testMailModal" tabindex="-1" role="dialog" aria-labelledby="testMailModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="testMailModalLabel"><i class="fas fa-paper-plane"></i> Test Kirim Email</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small">Email akan dikirim menggunakan konfigurasi SMTP yang sudah tersimpan.</p>
+        <div class="form-group">
+          <label for="test_email_to">Email Tujuan <span class="text-danger">*</span></label>
+          <input type="email" class="form-control" id="test_email_to" placeholder="contoh@email.com" required>
+        </div>
+        <div class="form-group">
+          <label for="test_email_subject">Subject</label>
+          <input type="text" class="form-control" id="test_email_subject" value="Test Email - <?= esc(setting('App.siteName') ?? 'CI4 Shield RBAC') ?>">
+        </div>
+        <div class="form-group">
+          <label for="test_email_message">Pesan</label>
+          <textarea class="form-control" id="test_email_message" rows="3">Ini adalah email percobaan dari sistem. Jika Anda menerima email ini, berarti konfigurasi email sudah benar.</textarea>
+        </div>
+        <div id="test-mail-result" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-primary" id="btn-send-test-mail">
+          <i class="fas fa-paper-plane"></i> Kirim
+        </button>
       </div>
     </div>
   </div>
@@ -388,6 +427,54 @@ $(function() {
       };
       reader.readAsDataURL(this.files[0]);
     }
+  });
+
+  // Move test mail modal to body to avoid z-index/backdrop issues
+  $('#testMailModal').appendTo('body');
+
+  // Test send email
+  $('#btn-send-test-mail').on('click', function() {
+    var btn = $(this);
+    var email = $('#test_email_to').val().trim();
+    if (!email) {
+      $('#test_email_to').focus();
+      return;
+    }
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Mengirim...');
+    $('#test-mail-result').hide();
+
+    $.ajax({
+      url: '<?= base_url('admin/settings/test-mail') ?>',
+      method: 'POST',
+      data: {
+        '<?= csrf_token() ?>': '<?= csrf_hash() ?>',
+        to: email,
+        subject: $('#test_email_subject').val(),
+        message: $('#test_email_message').val()
+      },
+      dataType: 'json',
+      success: function(res) {
+        var cls = res.success ? 'alert-success' : 'alert-danger';
+        var icon = res.success ? 'fa-check-circle' : 'fa-times-circle';
+        $('#test-mail-result').removeClass('alert-success alert-danger')
+          .addClass('alert ' + cls)
+          .html('<i class="fas ' + icon + '"></i> ' + res.message)
+          .show();
+      },
+      error: function(xhr) {
+        var msg = 'Terjadi kesalahan saat mengirim email.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          msg = xhr.responseJSON.message;
+        }
+        $('#test-mail-result').removeClass('alert-success alert-danger')
+          .addClass('alert alert-danger')
+          .html('<i class="fas fa-times-circle"></i> ' + msg)
+          .show();
+      },
+      complete: function() {
+        btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Kirim');
+      }
+    });
   });
 
   // Delete branding (favicon / logo) — submit via dynamic form to avoid nested form issue
