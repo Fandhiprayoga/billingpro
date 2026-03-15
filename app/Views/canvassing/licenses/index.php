@@ -34,7 +34,7 @@
                 <th>Paket</th>
                 <th>Status</th>
                 <th>Expired</th>
-                <th width="130">Aksi</th>
+                <th width="180">Aksi</th>
               </tr>
             </thead>
           </table>
@@ -86,9 +86,10 @@ $(function() {
       },
       { data: 'uuid', orderable: false,
         render: function(d, type, row) {
-          var html = '<a href="<?= base_url('canvassing/customer-licenses') ?>/' + d + '" class="btn btn-sm btn-info mr-1"><i class="fas fa-eye"></i></a>';
+          var html = '<a href="<?= base_url('canvassing/customer-licenses') ?>/' + d + '" class="btn btn-sm btn-info mr-1" title="Detail"><i class="fas fa-eye"></i></a>';
+          html += '<a href="<?= base_url('canvassing/customer-licenses/history') ?>/' + d + '" class="btn btn-sm btn-primary mr-1" title="History Transaksi"><i class="fas fa-history"></i></a>';
           if (row.status === 'active' && !parseInt(row.is_trial)) {
-            html += '<a href="<?= base_url('canvassing/customer-licenses/renew') ?>/' + d + '" class="btn btn-sm btn-warning"><i class="fas fa-redo"></i></a>';
+            html += '<a href="<?= base_url('canvassing/customer-licenses/renew') ?>/' + d + '" class="btn btn-sm btn-warning" title="Perpanjang"><i class="fas fa-redo"></i></a>';
           }
           return html;
         }

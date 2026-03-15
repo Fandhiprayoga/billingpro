@@ -187,6 +187,7 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
         // Customer Licenses
         $routes->get('customer-licenses', 'Canvassing\CustomerLicenseController::index', ['filter' => 'permission:canvassing.licenses.list']);
         $routes->get('customer-licenses/ajax', 'Canvassing\CustomerLicenseController::ajax', ['filter' => 'permission:canvassing.licenses.list']);
+        $routes->get('customer-licenses/history/(:segment)', 'Canvassing\CustomerLicenseController::history/$1', ['filter' => 'permission:canvassing.licenses.list']);
         $routes->get('customer-licenses/(:segment)', 'Canvassing\CustomerLicenseController::detail/$1', ['filter' => 'permission:canvassing.licenses.list']);
         $routes->get('customer-licenses/renew/(:segment)', 'Canvassing\CustomerLicenseController::renew/$1', ['filter' => 'permission:canvassing.licenses.renew']);
         $routes->post('customer-licenses/store-renewal/(:segment)', 'Canvassing\CustomerLicenseController::storeRenewal/$1', ['filter' => 'permission:canvassing.licenses.renew']);

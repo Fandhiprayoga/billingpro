@@ -104,6 +104,65 @@ class CustomerLicenseController extends BaseController
         return $this->renderView('canvassing/licenses/detail', $data);
     }
 
+    public function history(string $uuid)
+    {
+        $managerId   = auth()->id();
+        $customerIds = $this->mcModel->getCustomerIds($managerId);
+
+        $license = $this->licenseModel
+            ->select('licenses.*, plans.name as plan_name, users.username')
+            ->join('plans', 'plans.id = licenses.plan_id', 'left')
+            ->join('users', 'users.id = licenses.user_id', 'left')
+            ->where('licenses.uuid', $uuid)
+            ->first();
+
+        if (! $license || ! in_array($license->user_id, $customerIds)) {
+            return redirect()->to('/canvassing/customer-licenses')->with('error', 'Lisensi tidak ditemukan.');
+        }
+
+        $db = \Config\Database::connect();
+
+        // Get all orders related to this license
+        $orders = $db->table('orders')
+            ->select('orders.*, plans.name as plan_name')
+            ->join('plans', 'plans.id = orders.plan_id', 'left')
+            ->groupStart()
+                ->where('orders.id', $license->order_id)
+                ->orWhere('orders.license_id', $license->id)
+            ->groupEnd()
+            ->orderBy('orders.created_at', 'DESC')
+            ->get()->getResult();
+
+        // Get payment confirmations for those orders
+        $orderIds = array_map(fn($o) => $o->id, $orders);
+        $payments = [];
+        if (! empty($orderIds)) {
+            $payments = $db->table('payment_confirmations')
+                ->whereIn('order_id', $orderIds)
+                ->orderBy('created_at', 'DESC')
+                ->get()->getResult();
+        }
+
+        // Get activity logs related to this license
+        $activities = $db->table('manager_activity_logs')
+            ->where('customer_id', $license->user_id)
+            ->where('reference_type', 'order')
+            ->whereIn('reference_id', ! empty($orderIds) ? $orderIds : [0])
+            ->orderBy('created_at', 'DESC')
+            ->get()->getResult();
+
+        $data = [
+            'title'      => 'History Transaksi Lisensi',
+            'page_title' => 'History Transaksi Lisensi',
+            'license'    => $license,
+            'orders'     => $orders,
+            'payments'   => $payments,
+            'activities' => $activities,
+        ];
+
+        return $this->renderView('canvassing/licenses/history', $data);
+    }
+
     public function renew(string $uuid)
     {
         $managerId   = auth()->id();

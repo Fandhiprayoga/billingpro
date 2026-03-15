@@ -34,6 +34,9 @@ $badge = match($license->status) {
     <div class="card">
       <div class="card-header"><h4>Aksi</h4></div>
       <div class="card-body">
+        <a href="<?= base_url('canvassing/customer-licenses/history/' . $license->uuid) ?>" class="btn btn-primary btn-block mb-2">
+          <i class="fas fa-history"></i> History Transaksi
+        </a>
         <?php if ($license->status === 'active' && !$license->is_trial): ?>
         <a href="<?= base_url('canvassing/customer-licenses/renew/' . $license->uuid) ?>" class="btn btn-warning btn-block mb-2">
           <i class="fas fa-redo"></i> Perpanjang Lisensi
