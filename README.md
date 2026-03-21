@@ -1,69 +1,154 @@
-# CodeIgniter 4 Application Starter
+# POS Billing — Sistem Manajemen Lisensi & Billing
 
-## What is CodeIgniter?
+**POS Billing** adalah aplikasi web berbasis **SaaS (Software as a Service)** untuk manajemen lisensi, billing, dan canvassing. Aplikasi ini memungkinkan pengelolaan paket layanan, pembuatan pesanan, konfirmasi pembayaran manual, penerbitan lisensi, serta manajemen pelanggan oleh tim canvassing (manager).
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+## Fitur Utama
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+- **Dashboard** — Ringkasan statistik dan overview sistem
+- **Manajemen Pengguna** — CRUD pengguna dengan Role-Based Access Control (RBAC) dan 4 role: Superadmin, Admin, Manager, User
+- **Manajemen Paket/Plan** — Buat dan kelola paket layanan dengan harga dan durasi
+- **Manajemen Pesanan/Order** — Alur pemesanan, konfirmasi pembayaran manual (upload bukti transfer), dan persetujuan admin
+- **Manajemen Lisensi** — Penerbitan license key unik (format: XXXXX-XXXXX-XXXXX-XXXXX), aktivasi, pencabutan, dan perpanjangan
+- **Trial License** — Pembuatan lisensi percobaan oleh admin untuk pelanggan
+- **Modul Canvassing** — Manager dapat mengelola pelanggan, membuat pesanan atas nama pelanggan, upload bukti pembayaran, dan memantau lisensi pelanggan
+- **Laporan** — Laporan pendapatan berdasarkan rentang tanggal, export ke file/PDF
+- **API Publik** — Endpoint untuk aktivasi dan pengecekan lisensi dari aplikasi eksternal (POS/Web)
+- **Pengaturan Sistem** — Konfigurasi umum, autentikasi, email, branding (favicon/logo)
+- **Dokumentasi API** — Halaman referensi endpoint API bawaan
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## Tech Stack
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+### Backend
 
-## Installation & updates
+| Teknologi | Versi | Keterangan |
+|---|---|---|
+| **PHP** | 8.2+ | Bahasa pemrograman utama |
+| **CodeIgniter 4** | ^4.7 | Framework web full-stack |
+| **CodeIgniter Shield** | ^1.2 | Sistem autentikasi & otorisasi (RBAC) |
+| **MySQL** | 5.7+ / 8.x | Database relasional |
+| **Composer** | - | Dependency manager PHP |
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+### Frontend
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+| Teknologi | Keterangan |
+|---|---|
+| **Bootstrap 4** | CSS framework untuk layout responsif |
+| **Stisla** | Template dashboard admin |
+| **DataTables** | Tabel interaktif (sorting, searching, pagination) |
+| **jQuery** | Library JavaScript |
+| **Select2** | Enhanced select dropdown |
+| **Font Awesome 5** | Icon library |
+| **Moment.js** | Pengelolaan format tanggal/waktu |
 
-## Setup
+### Testing
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+| Teknologi | Keterangan |
+|---|---|
+| **PHPUnit 10** | Unit testing framework |
+| **FakerPHP** | Generasi data dummy untuk testing |
 
-## Important Change with index.php
+## Persyaratan Sistem
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+- **PHP** versi 8.2 atau lebih tinggi
+- **MySQL** versi 5.7+ atau 8.x
+- **Composer** terinstal secara global
+- **Web Server**: Apache (dengan mod_rewrite) atau Nginx
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+Ekstensi PHP yang diperlukan:
+- `intl`
+- `mbstring`
+- `json` (aktif secara default)
+- `mysqlnd`
+- `curl`
 
-**Please** read the user guide for a better explanation of how CI4 works!
+## Instalasi
 
-## Repository Management
+### 1. Clone Repository
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+```bash
+git clone <url-repository> posbilling
+cd posbilling
+```
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+### 2. Install Dependencies
 
-## Server Requirements
+```bash
+composer install
+```
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+### 3. Konfigurasi Environment
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+Salin file `env` menjadi `.env`, kemudian sesuaikan konfigurasinya:
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+```bash
+cp env .env
+```
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+Edit file `.env` dan sesuaikan:
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+```env
+# Base URL aplikasi
+app.baseURL = 'http://localhost:8080/'
+
+# Konfigurasi Database
+database.default.hostname = localhost
+database.default.database = posbilling
+database.default.username = root
+database.default.password = your_password
+database.default.DBDriver = MySQLi
+database.default.port = 3306
+```
+
+### 4. Buat Database
+
+Buat database MySQL baru sesuai nama yang dikonfigurasi di `.env`:
+
+```sql
+CREATE DATABASE posbilling CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+```
+
+### 5. Jalankan Migrasi & Seeder
+
+```bash
+php spark migrate
+php spark db:seed
+```
+
+### 6. Jalankan Aplikasi
+
+```bash
+php spark serve
+```
+
+Aplikasi akan berjalan di `http://localhost:8080`.
+
+### 7. Konfigurasi Web Server (Production)
+
+Arahkan document root web server ke folder `public/` pada project, **bukan** ke root project. Contoh konfigurasi virtual host Apache:
+
+```apache
+<VirtualHost *:80>
+    ServerName posbilling.local
+    DocumentRoot /path/to/posbilling/public
+
+    <Directory /path/to/posbilling/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+```
+
+## API Endpoints
+
+Aplikasi menyediakan API publik (tanpa autentikasi) untuk integrasi dengan aplikasi POS/Web eksternal:
+
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| `POST` | `/api/license/activate` | Aktivasi lisensi dari aplikasi eksternal |
+| `POST` | `/api/license/check` | Verifikasi validitas lisensi |
+
+## Kontak
+
+Jika mengalami kendala atau memiliki pertanyaan terkait aplikasi ini, silakan hubungi:
+
+📧 **Email**: [fduga2@gmail.com](mailto:fduga2@gmail.com)
