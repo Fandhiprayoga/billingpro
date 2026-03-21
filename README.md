@@ -1,6 +1,6 @@
-# POS Billing — Sistem Manajemen Lisensi & Billing
+# billingpro — Sistem Manajemen Lisensi & Billing
 
-**POS Billing** adalah aplikasi web berbasis **SaaS (Software as a Service)** untuk manajemen lisensi, billing, dan canvassing. Aplikasi ini memungkinkan pengelolaan paket layanan, pembuatan pesanan, konfirmasi pembayaran manual, penerbitan lisensi, serta manajemen pelanggan oleh tim canvassing (manager).
+**billingpro** adalah aplikasi web berbasis **SaaS (Software as a Service)** untuk manajemen lisensi, billing, dan canvassing. Aplikasi ini memungkinkan pengelolaan paket layanan, pembuatan pesanan, konfirmasi pembayaran manual, penerbitan lisensi, serta manajemen pelanggan oleh tim canvassing (manager).
 
 ## Fitur Utama
 
