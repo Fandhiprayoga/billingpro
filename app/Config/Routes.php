@@ -96,6 +96,10 @@ $routes->group('', ['filter' => 'session'], static function ($routes) {
             $routes->post('update/mail', 'SettingController::updateMail');
             $routes->post('test-mail', 'SettingController::testMail');
             $routes->post('delete-branding/(:segment)', 'SettingController::deleteBranding/$1');
+            // Warehousing
+            $routes->post('cleanup/payment-proofs', 'SettingController::deletePaymentProofs');
+            $routes->post('cleanup/(:segment)', 'SettingController::cleanupDirectory/$1');
+            $routes->post('reset-data', 'SettingController::resetTransactionData');
         });
 
         // ---------------------------------------------------------------

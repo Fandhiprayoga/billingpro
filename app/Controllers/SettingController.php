@@ -2,6 +2,12 @@
 
 namespace App\Controllers;
 
+use App\Models\LicenseModel;
+use App\Models\ManagerActivityLogModel;
+use App\Models\ManagerCustomerModel;
+use App\Models\OrderModel;
+use App\Models\PaymentConfirmationModel;
+
 class SettingController extends BaseController
 {
     /**
@@ -42,11 +48,14 @@ class SettingController extends BaseController
         $authGroups = config('AuthGroups');
 
         $data = [
-            'title'      => 'Pengaturan',
-            'page_title' => 'Pengaturan Sistem',
-            'activeTab'  => $activeTab,
-            'groups'     => $authGroups->groups,
-            'settings'   => $this->getAllSettings(),
+            'title'            => 'Pengaturan',
+            'page_title'       => 'Pengaturan Sistem',
+            'activeTab'        => $activeTab,
+            'groups'           => $authGroups->groups,
+            'settings'         => $this->getAllSettings(),
+            'storageInfo'      => $this->getStorageInfo(),
+            'proofFiles'       => $this->getPaymentProofFiles(),
+            'transactionStats' => $this->getTransactionStats(),
         ];
 
         return $this->renderView('settings/index', $data);
@@ -268,5 +277,434 @@ class SettingController extends BaseController
         $label = $type === 'favicon' ? 'Favicon' : 'Logo halaman login';
 
         return redirect()->to('/admin/settings?tab=general')->with('success', "{$label} berhasil dihapus dan dikembalikan ke default.");
+    }
+
+    // ================================================================
+    // WAREHOUSING — Storage & Cleanup Methods
+    // ================================================================
+
+    /**
+     * Informasi penggunaan storage per direktori di writable/
+     */
+    private function getStorageInfo(): array
+    {
+        $dirs = [
+            'payment_proofs' => [
+                'label' => 'Bukti Pembayaran',
+                'path'  => WRITEPATH . 'uploads/payment_proofs',
+                'icon'  => 'fa-file-image',
+            ],
+            'branding' => [
+                'label' => 'Branding (Favicon & Logo)',
+                'path'  => WRITEPATH . 'uploads/branding',
+                'icon'  => 'fa-palette',
+            ],
+            'logs' => [
+                'label' => 'Log Aplikasi',
+                'path'  => WRITEPATH . 'logs',
+                'icon'  => 'fa-file-alt',
+            ],
+            'sessions' => [
+                'label' => 'Session Files',
+                'path'  => WRITEPATH . 'session',
+                'icon'  => 'fa-clock',
+            ],
+            'debugbar' => [
+                'label' => 'Debug Bar',
+                'path'  => WRITEPATH . 'debugbar',
+                'icon'  => 'fa-bug',
+            ],
+            'cache' => [
+                'label' => 'Cache',
+                'path'  => WRITEPATH . 'cache',
+                'icon'  => 'fa-database',
+            ],
+        ];
+
+        $result = [];
+        foreach ($dirs as $key => $info) {
+            $fileCount = 0;
+            $totalSize = 0;
+
+            if (is_dir($info['path'])) {
+                $iterator = new \DirectoryIterator($info['path']);
+                foreach ($iterator as $file) {
+                    if ($file->isDot() || $file->getFilename() === 'index.html' || $file->getFilename() === '.gitkeep') {
+                        continue;
+                    }
+                    if ($file->isFile()) {
+                        $fileCount++;
+                        $totalSize += $file->getSize();
+                    }
+                }
+            }
+
+            $result[$key] = [
+                'label'     => $info['label'],
+                'icon'      => $info['icon'],
+                'path'      => $info['path'],
+                'fileCount' => $fileCount,
+                'totalSize' => $totalSize,
+                'sizeHuman' => $this->formatBytes($totalSize),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * List file bukti pembayaran dengan info order terkait
+     */
+    private function getPaymentProofFiles(): array
+    {
+        $proofDir = WRITEPATH . 'uploads/payment_proofs';
+        if (! is_dir($proofDir)) {
+            return [];
+        }
+
+        // Ambil data dari DB untuk cross-reference
+        $confirmationModel = new PaymentConfirmationModel();
+        $db = \Config\Database::connect();
+        $confirmations = $db->table('payment_confirmations pc')
+            ->select('pc.proof_image, pc.status AS confirmation_status, pc.created_at AS uploaded_at, o.order_number, o.status AS order_status')
+            ->join('orders o', 'o.id = pc.order_id', 'left')
+            ->get()
+            ->getResultArray();
+
+        // Index by filename
+        $dbIndex = [];
+        foreach ($confirmations as $row) {
+            $filename = basename($row['proof_image'] ?? '');
+            if ($filename) {
+                $dbIndex[$filename] = $row;
+            }
+        }
+
+        $files = [];
+        $iterator = new \DirectoryIterator($proofDir);
+        foreach ($iterator as $file) {
+            if ($file->isDot() || $file->getFilename() === 'index.html') {
+                continue;
+            }
+            if (! $file->isFile()) {
+                continue;
+            }
+
+            $filename = $file->getFilename();
+            $dbInfo = $dbIndex[$filename] ?? null;
+
+            $orderStatus = $dbInfo['order_status'] ?? null;
+            $isDeletable = $dbInfo === null  // orphaned
+                || in_array($orderStatus, ['paid', 'cancelled', 'expired'], true);
+
+            $files[] = [
+                'filename'     => $filename,
+                'size'         => $file->getSize(),
+                'sizeHuman'    => $this->formatBytes($file->getSize()),
+                'modified'     => $file->getMTime(),
+                'modifiedDate' => date('Y-m-d H:i', $file->getMTime()),
+                'orderNumber'  => $dbInfo['order_number'] ?? null,
+                'orderStatus'  => $orderStatus,
+                'confirmationStatus' => $dbInfo['confirmation_status'] ?? null,
+                'isDeletable'  => $isDeletable,
+                'isOrphaned'   => $dbInfo === null,
+            ];
+        }
+
+        // Sort oldest first
+        usort($files, fn($a, $b) => $a['modified'] <=> $b['modified']);
+
+        return $files;
+    }
+
+    /**
+     * Hapus file bukti pembayaran yang dipilih
+     */
+    public function deletePaymentProofs()
+    {
+        $filenames = $this->request->getPost('filenames');
+        if (empty($filenames) || ! is_array($filenames)) {
+            return redirect()->to('/admin/settings?tab=storage')->with('error', 'Tidak ada file yang dipilih.');
+        }
+
+        $proofDir = WRITEPATH . 'uploads/payment_proofs';
+        $deleted = 0;
+        $skipped = 0;
+
+        $db = \Config\Database::connect();
+
+        foreach ($filenames as $filename) {
+            // Sanitize: basename only, no path traversal
+            $safe = basename($filename);
+            if ($safe !== $filename || $safe === 'index.html') {
+                $skipped++;
+                continue;
+            }
+
+            $fullPath = $proofDir . DIRECTORY_SEPARATOR . $safe;
+            if (! file_exists($fullPath)) {
+                $skipped++;
+                continue;
+            }
+
+            // Delete physical file
+            if (unlink($fullPath)) {
+                // Clear proof_image in DB
+                $relativePath = 'payment_proofs/' . $safe;
+                $db->table('payment_confirmations')
+                    ->where('proof_image', $relativePath)
+                    ->update(['proof_image' => '']);
+
+                $deleted++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        log_message('info', "Warehousing: Admin #{$this->getAdminId()} deleted {$deleted} payment proof file(s). Skipped: {$skipped}.");
+
+        $msg = "{$deleted} file berhasil dihapus.";
+        if ($skipped > 0) {
+            $msg .= " {$skipped} file dilewati.";
+        }
+
+        return redirect()->to('/admin/settings?tab=storage')->with('success', $msg);
+    }
+
+    /**
+     * Cleanup direktori sistem (logs, sessions, debugbar, cache)
+     */
+    public function cleanupDirectory(string $target)
+    {
+        $targets = [
+            'logs'     => ['path' => WRITEPATH . 'logs',     'label' => 'Log Aplikasi',   'maxAge' => 30 * 86400],
+            'sessions' => ['path' => WRITEPATH . 'session',  'label' => 'Session Files',   'maxAge' => 7 * 86400],
+            'debugbar' => ['path' => WRITEPATH . 'debugbar', 'label' => 'Debug Bar',       'maxAge' => 3 * 86400],
+            'cache'    => ['path' => WRITEPATH . 'cache',    'label' => 'Cache',            'maxAge' => 0],
+        ];
+
+        if (! isset($targets[$target])) {
+            return redirect()->to('/admin/settings?tab=storage')->with('error', 'Target cleanup tidak valid.');
+        }
+
+        $config  = $targets[$target];
+        $dir     = $config['path'];
+        $maxAge  = $config['maxAge'];
+        $cutoff  = $maxAge > 0 ? time() - $maxAge : PHP_INT_MAX; // maxAge=0 means delete all
+        $deleted = 0;
+
+        if (is_dir($dir)) {
+            $iterator = new \DirectoryIterator($dir);
+            foreach ($iterator as $file) {
+                if ($file->isDot() || $file->getFilename() === 'index.html' || $file->getFilename() === '.gitkeep') {
+                    continue;
+                }
+                if (! $file->isFile()) {
+                    continue;
+                }
+
+                if ($maxAge === 0 || $file->getMTime() < $cutoff) {
+                    if (unlink($file->getPathname())) {
+                        $deleted++;
+                    }
+                }
+            }
+        }
+
+        $label = $config['label'];
+        $ageLabel = $maxAge > 0 ? ' (lebih dari ' . ($maxAge / 86400) . ' hari)' : '';
+        log_message('info', "Warehousing: Admin #{$this->getAdminId()} cleaned up {$deleted} {$label} file(s){$ageLabel}.");
+
+        return redirect()->to('/admin/settings?tab=storage')->with('success', "{$deleted} file {$label} berhasil dihapus{$ageLabel}.");
+    }
+
+    // ================================================================
+    // WAREHOUSING — Transaction Data Reset
+    // ================================================================
+
+    /**
+     * Statistik jumlah record per tabel transaksi
+     */
+    private function getTransactionStats(): array
+    {
+        $db = \Config\Database::connect();
+
+        return [
+            'orders' => [
+                'label'   => 'Orders',
+                'desc'    => 'Data pesanan/order. Reset akan menghapus juga konfirmasi pembayaran & file bukti bayar.',
+                'count'   => $db->table('orders')->countAllResults(),
+                'icon'    => 'fa-shopping-cart',
+                'color'   => 'danger',
+            ],
+            'payment_confirmations' => [
+                'label'   => 'Konfirmasi Pembayaran',
+                'desc'    => 'Data konfirmasi pembayaran manual. Reset akan menghapus file bukti bayar di server.',
+                'count'   => $db->table('payment_confirmations')->countAllResults(),
+                'icon'    => 'fa-receipt',
+                'color'   => 'warning',
+            ],
+            'licenses' => [
+                'label'   => 'Lisensi',
+                'desc'    => 'Data lisensi (termasuk trial). Semua lisensi akan dihapus permanen.',
+                'count'   => $db->table('licenses')->countAllResults(),
+                'icon'    => 'fa-key',
+                'color'   => 'info',
+            ],
+            'activity_logs' => [
+                'label'   => 'Log Aktivitas Manager',
+                'desc'    => 'Catatan aktivitas canvassing manager.',
+                'count'   => $db->table('manager_activity_logs')->countAllResults(),
+                'icon'    => 'fa-history',
+                'color'   => 'secondary',
+            ],
+            'manager_assignments' => [
+                'label'   => 'Penugasan Manager-Customer',
+                'desc'    => 'Data penugasan manager ke customer.',
+                'count'   => $db->table('manager_customers')->countAllResults(),
+                'icon'    => 'fa-users',
+                'color'   => 'dark',
+            ],
+        ];
+    }
+
+    /**
+     * Reset data transaksi per tabel — memerlukan konfirmasi password admin
+     */
+    public function resetTransactionData()
+    {
+        $target   = $this->request->getPost('target');
+        $password = $this->request->getPost('password');
+
+        // Validasi input
+        if (empty($target) || empty($password)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Target dan password wajib diisi.']);
+        }
+
+        // Verifikasi password admin
+        $user = auth()->user();
+        $passwords = service('passwords');
+        if (! $passwords->verify($password, $user->password_hash)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Password salah. Silakan coba lagi.']);
+        }
+
+        $db = \Config\Database::connect();
+        $deleted = 0;
+
+        try {
+            $db->transStart();
+
+            switch ($target) {
+                case 'orders':
+                    // Delete proof files first
+                    $this->deleteAllProofFiles();
+                    // Clear related activity logs
+                    $db->table('manager_activity_logs')
+                        ->whereIn('reference_type', ['order', 'payment_confirmation'])
+                        ->delete();
+                    $deleted += $db->table('payment_confirmations')->countAllResults();
+                    $db->table('payment_confirmations')->truncate();
+                    $deleted += $db->table('orders')->countAllResults();
+                    $db->table('orders')->truncate();
+                    break;
+
+                case 'payment_confirmations':
+                    $this->deleteAllProofFiles();
+                    $db->table('manager_activity_logs')
+                        ->where('reference_type', 'payment_confirmation')
+                        ->delete();
+                    $deleted = $db->table('payment_confirmations')->countAllResults();
+                    $db->table('payment_confirmations')->truncate();
+                    break;
+
+                case 'licenses':
+                    $db->table('manager_activity_logs')
+                        ->where('reference_type', 'license')
+                        ->delete();
+                    $deleted = $db->table('licenses')->countAllResults();
+                    $db->table('licenses')->truncate();
+                    break;
+
+                case 'activity_logs':
+                    $deleted = $db->table('manager_activity_logs')->countAllResults();
+                    $db->table('manager_activity_logs')->truncate();
+                    break;
+
+                case 'manager_assignments':
+                    $deleted = $db->table('manager_customers')->countAllResults();
+                    $db->table('manager_customers')->truncate();
+                    break;
+
+                default:
+                    return $this->response->setJSON(['success' => false, 'message' => 'Target reset tidak valid.']);
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Gagal mereset data. Transaksi database dibatalkan.']);
+            }
+
+            $targetLabels = [
+                'orders'                 => 'Orders + Konfirmasi Pembayaran',
+                'payment_confirmations'  => 'Konfirmasi Pembayaran',
+                'licenses'               => 'Lisensi',
+                'activity_logs'          => 'Log Aktivitas Manager',
+                'manager_assignments'    => 'Penugasan Manager-Customer',
+            ];
+
+            $label = $targetLabels[$target] ?? $target;
+            log_message('notice', "RESET DATA: Admin #{$this->getAdminId()} ({$user->username}) reset '{$label}'. {$deleted} record(s) dihapus.");
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => "Berhasil mereset data {$label}. {$deleted} record dihapus.",
+                'deleted' => $deleted,
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', "Reset data gagal: " . $e->getMessage());
+            return $this->response->setJSON(['success' => false, 'message' => 'Terjadi kesalahan saat mereset data.']);
+        }
+    }
+
+    /**
+     * Hapus semua file bukti pembayaran dari disk
+     */
+    private function deleteAllProofFiles(): void
+    {
+        $proofDir = WRITEPATH . 'uploads/payment_proofs';
+        if (! is_dir($proofDir)) {
+            return;
+        }
+
+        $iterator = new \DirectoryIterator($proofDir);
+        foreach ($iterator as $file) {
+            if ($file->isDot() || $file->getFilename() === 'index.html') {
+                continue;
+            }
+            if ($file->isFile()) {
+                unlink($file->getPathname());
+            }
+        }
+    }
+
+    /**
+     * Format bytes ke human-readable string
+     */
+    private function formatBytes(int $bytes, int $precision = 2): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $factor = floor((strlen((string) $bytes) - 1) / 3);
+        $factor = min($factor, count($units) - 1);
+
+        return round($bytes / pow(1024, $factor), $precision) . ' ' . $units[$factor];
+    }
+
+    /**
+     * Get current admin user ID
+     */
+    private function getAdminId(): int
+    {
+        return (int) auth()->id();
     }
 }

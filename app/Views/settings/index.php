@@ -37,6 +37,12 @@ $s = function (string $key) use ($settings) {
               <i class="fas fa-envelope"></i> Email
             </a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link <?= $activeTab === 'storage' ? 'active' : '' ?>"
+               id="storage-tab" data-toggle="tab" href="#storage" role="tab">
+              <i class="fas fa-hdd"></i> Warehousing
+            </a>
+          </li>
         </ul>
 
         <!-- Tabs Content -->
@@ -369,6 +375,233 @@ $s = function (string $key) use ($settings) {
             </form>
           </div>
 
+          <!-- ============================================ -->
+          <!-- TAB: WAREHOUSING -->
+          <!-- ============================================ -->
+          <div class="tab-pane fade <?= $activeTab === 'storage' ? 'show active' : '' ?>" id="storage" role="tabpanel">
+            <div class="mt-4">
+
+              <?php // Storage content ?>
+
+              <!-- ========== Section A: Storage Overview ========== -->
+              <h6 class="text-muted mb-3"><i class="fas fa-chart-pie"></i> Penggunaan Storage</h6>
+              <div class="row">
+                <?php foreach ($storageInfo as $key => $info): ?>
+                <div class="col-md-4 col-sm-6 mb-3">
+                  <div class="card card-statistic-2 h-100">
+                    <div class="card-body p-3">
+                      <div class="d-flex align-items-center">
+                        <div class="mr-3">
+                          <i class="fas <?= $info['icon'] ?> fa-2x text-muted"></i>
+                        </div>
+                        <div>
+                          <h6 class="mb-0"><?= esc($info['label']) ?></h6>
+                          <span class="text-muted small"><?= $info['fileCount'] ?> file</span>
+                          <span class="badge badge-light ml-1"><?= $info['sizeHuman'] ?></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <?php endforeach; ?>
+              </div>
+
+              <hr>
+
+              <!-- ========== Section B: Payment Proof Files ========== -->
+              <h6 class="text-muted mb-3"><i class="fas fa-file-image"></i> File Bukti Pembayaran</h6>
+              <?php if (empty($proofFiles)): ?>
+                <div class="alert alert-info"><i class="fas fa-info-circle"></i> Tidak ada file bukti pembayaran.</div>
+              <?php else: ?>
+                <form action="<?= base_url('admin/settings/cleanup/payment-proofs') ?>" method="post" id="formDeleteProofs">
+                  <?= csrf_field() ?>
+                  <div class="mb-3">
+                    <button type="submit" class="btn btn-danger btn-sm" id="btnBulkDelete" disabled onclick="return confirm('Yakin ingin menghapus file yang dipilih?')">
+                      <i class="fas fa-trash-alt"></i> Hapus File Terpilih (<span id="selectedCount">0</span>)
+                    </button>
+                    <span class="text-muted small ml-2">Hanya file dari order yang sudah selesai/batal yang bisa dihapus.</span>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover table-bordered">
+                      <thead class="thead-light">
+                        <tr>
+                          <th style="width:40px"><input type="checkbox" id="checkAll"></th>
+                          <th>Nama File</th>
+                          <th>Ukuran</th>
+                          <th>Tanggal</th>
+                          <th>No. Order</th>
+                          <th>Status Order</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <?php foreach ($proofFiles as $pf): ?>
+                        <tr>
+                          <td>
+                            <?php if ($pf['isDeletable']): ?>
+                              <input type="checkbox" name="filenames[]" value="<?= esc($pf['filename']) ?>" class="proof-check">
+                            <?php else: ?>
+                              <i class="fas fa-lock text-muted" title="Tidak bisa dihapus — order masih dalam proses"></i>
+                            <?php endif; ?>
+                          </td>
+                          <td>
+                            <a href="<?= base_url('uploads/payment_proofs/' . esc($pf['filename'])) ?>" target="_blank" class="text-primary" title="Lihat file">
+                              <i class="fas fa-image"></i> <?= esc($pf['filename']) ?>
+                            </a>
+                          </td>
+                          <td><?= $pf['sizeHuman'] ?></td>
+                          <td><?= $pf['modifiedDate'] ?></td>
+                          <td>
+                            <?php if ($pf['orderNumber']): ?>
+                              <code><?= esc($pf['orderNumber']) ?></code>
+                            <?php else: ?>
+                              <span class="badge badge-warning">Orphaned</span>
+                            <?php endif; ?>
+                          </td>
+                          <td>
+                            <?php if ($pf['orderStatus']): ?>
+                              <?php
+                              $statusColors = ['pending' => 'warning', 'awaiting_confirmation' => 'info', 'paid' => 'success', 'cancelled' => 'secondary', 'expired' => 'dark'];
+                              $color = $statusColors[$pf['orderStatus']] ?? 'light';
+                              ?>
+                              <span class="badge badge-<?= $color ?>"><?= esc($pf['orderStatus']) ?></span>
+                            <?php else: ?>
+                              <span class="text-muted">-</span>
+                            <?php endif; ?>
+                          </td>
+                          <td>
+                            <?php if ($pf['isOrphaned']): ?>
+                              <span class="badge badge-warning" title="File tidak terkait record di database">Orphaned</span>
+                            <?php elseif ($pf['isDeletable']): ?>
+                              <span class="badge badge-success">Bisa dihapus</span>
+                            <?php else: ?>
+                              <span class="badge badge-secondary">Dalam proses</span>
+                            <?php endif; ?>
+                          </td>
+                        </tr>
+                        <?php endforeach; ?>
+                      </tbody>
+                    </table>
+                  </div>
+                </form>
+              <?php endif; ?>
+
+              <hr>
+
+              <!-- ========== Section C: Quick Cleanup ========== -->
+              <h6 class="text-muted mb-3"><i class="fas fa-broom"></i> Pembersihan Cepat</h6>
+              <div class="row">
+                <?php
+                $cleanupTargets = [
+                    'logs'     => ['label' => 'Log Aplikasi',   'desc' => 'Hapus file log lebih dari 30 hari', 'icon' => 'fa-file-alt',  'color' => 'info'],
+                    'sessions' => ['label' => 'Session Files',  'desc' => 'Hapus session lebih dari 7 hari',   'icon' => 'fa-clock',     'color' => 'warning'],
+                    'debugbar' => ['label' => 'Debug Bar',      'desc' => 'Hapus data debugbar lebih dari 3 hari', 'icon' => 'fa-bug',   'color' => 'secondary'],
+                    'cache'    => ['label' => 'Cache',           'desc' => 'Hapus semua file cache',            'icon' => 'fa-database',  'color' => 'danger'],
+                ];
+                ?>
+                <?php foreach ($cleanupTargets as $tKey => $tInfo): ?>
+                <div class="col-md-3 col-sm-6 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body p-3 text-center">
+                      <i class="fas <?= $tInfo['icon'] ?> fa-2x text-<?= $tInfo['color'] ?> mb-2"></i>
+                      <h6 class="mb-1"><?= $tInfo['label'] ?></h6>
+                      <p class="text-muted small mb-2"><?= $tInfo['desc'] ?></p>
+                      <span class="badge badge-light mb-2"><?= $storageInfo[$tKey]['fileCount'] ?? 0 ?> file &middot; <?= $storageInfo[$tKey]['sizeHuman'] ?? '0 B' ?></span><br>
+                      <form action="<?= base_url('admin/settings/cleanup/' . $tKey) ?>" method="post" class="d-inline" onsubmit="return confirm('Yakin ingin membersihkan <?= esc($tInfo['label']) ?>?')">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn btn-sm btn-outline-<?= $tInfo['color'] ?>">
+                          <i class="fas fa-broom"></i> Bersihkan
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                <?php endforeach; ?>
+              </div>
+
+              <hr>
+
+              <!-- ========== Section D: Reset Data Transaksi ========== -->
+              <h6 class="text-danger mb-3"><i class="fas fa-exclamation-triangle"></i> Reset Data Transaksi</h6>
+              <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Perhatian!</strong> Reset data bersifat <strong>permanen</strong> dan <strong>tidak dapat dibatalkan</strong>.
+                Data yang dihapus tidak bisa dikembalikan. Pastikan Anda sudah backup data sebelum melakukan reset.
+                <br><small class="text-muted">Data master (Plans & Users) tidak akan terpengaruh.</small>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-bordered">
+                  <thead class="thead-light">
+                    <tr>
+                      <th style="width:50px"></th>
+                      <th>Data</th>
+                      <th>Keterangan</th>
+                      <th style="width:120px" class="text-center">Jumlah</th>
+                      <th style="width:120px" class="text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($transactionStats as $tKey => $tStat): ?>
+                    <tr>
+                      <td class="text-center"><i class="fas <?= $tStat['icon'] ?> text-<?= $tStat['color'] ?>"></i></td>
+                      <td><strong><?= esc($tStat['label']) ?></strong></td>
+                      <td><small class="text-muted"><?= esc($tStat['desc']) ?></small></td>
+                      <td class="text-center">
+                        <span class="badge badge-<?= $tStat['count'] > 0 ? $tStat['color'] : 'light' ?>" id="count-<?= $tKey ?>">
+                          <?= number_format($tStat['count']) ?>
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-reset-data"
+                                data-target="<?= $tKey ?>"
+                                data-label="<?= esc($tStat['label']) ?>"
+                                data-count="<?= $tStat['count'] ?>"
+                                <?= $tStat['count'] === 0 ? 'disabled' : '' ?>>
+                          <i class="fas fa-redo-alt"></i> Reset
+                        </button>
+                      </td>
+                    </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Saran Manajemen Storage -->
+              <!-- <hr>
+              <h6 class="text-muted mb-3"><i class="fas fa-lightbulb"></i> Saran Manajemen Storage</h6>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <div class="card border-left-primary h-100">
+                    <div class="card-body p-3">
+                      <h6 class="text-primary"><i class="fas fa-clock"></i> Cron Job Cleanup</h6>
+                      <p class="small text-muted mb-0">Jalankan <code>php spark maintenance:cleanup</code> via cron job harian untuk membersihkan file log, session, dan debugbar secara otomatis.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="card border-left-warning h-100">
+                    <div class="card-body p-3">
+                      <h6 class="text-warning"><i class="fas fa-compress-arrows-alt"></i> Kompresi Upload</h6>
+                      <p class="small text-muted mb-0">Pertimbangkan untuk mengompres gambar bukti bayar saat upload (resize ke maks 1024px) untuk menghemat ruang disk.</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="card border-left-info h-100">
+                    <div class="card-body p-3">
+                      <h6 class="text-info"><i class="fas fa-cloud"></i> Cloud Storage</h6>
+                      <p class="small text-muted mb-0">Untuk skala besar, pertimbangkan migrasi upload ke cloud storage (S3, GCS) agar tidak membebani disk server.</p>
+                    </div>
+                  </div>
+                </div>
+              </div> -->
+
+
+
+            </div>
+          </div>
+
         </div><!-- end tab-content -->
       </div>
     </div>
@@ -405,6 +638,41 @@ $s = function (string $key) use ($settings) {
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
         <button type="button" class="btn btn-primary" id="btn-send-test-mail">
           <i class="fas fa-paper-plane"></i> Kirim
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reset Data Transaksi -->
+<div class="modal fade" id="resetDataModal" tabindex="-1" role="dialog" aria-labelledby="resetDataModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="resetDataModalLabel"><i class="fas fa-exclamation-triangle"></i> Konfirmasi Reset Data</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Peringatan!</strong> Tindakan ini <strong>tidak dapat dibatalkan</strong>. Data yang dihapus tidak bisa dikembalikan.
+        </div>
+        <p>Anda akan mereset data: <strong id="resetTargetLabel"></strong></p>
+        <p>Jumlah record yang akan dihapus: <strong id="resetTargetCount" class="text-danger"></strong></p>
+        <hr>
+        <div class="form-group">
+          <label for="resetPassword"><i class="fas fa-lock"></i> Masukkan password Anda untuk konfirmasi:</label>
+          <input type="password" class="form-control" id="resetPassword" placeholder="Password akun Anda" autocomplete="off">
+          <div id="resetPasswordError" class="invalid-feedback"></div>
+        </div>
+        <div id="resetResult" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmReset">
+          <i class="fas fa-redo-alt"></i> Ya, Reset Data
         </button>
       </div>
     </div>
@@ -490,6 +758,96 @@ $(function() {
     form.append($('<input>', { type: 'hidden', name: '<?= csrf_token() ?>', value: '<?= csrf_hash() ?>' }));
     $('body').append(form);
     form.submit();
+  });
+
+  // ================================================================
+  // Warehousing Tab: Payment Proof Checkbox Handling
+  // ================================================================
+  function updateSelectedCount() {
+    var count = $('.proof-check:checked').length;
+    $('#selectedCount').text(count);
+    $('#btnBulkDelete').prop('disabled', count === 0);
+  }
+
+  $('#checkAll').on('change', function() {
+    $('.proof-check').prop('checked', $(this).is(':checked'));
+    updateSelectedCount();
+  });
+
+  $(document).on('change', '.proof-check', function() {
+    var total = $('.proof-check').length;
+    var checked = $('.proof-check:checked').length;
+    $('#checkAll').prop('checked', total === checked);
+    updateSelectedCount();
+  });
+
+  // ================================================================
+  // Warehousing Tab: Reset Data Transaction
+  // ================================================================
+  var resetTarget = '';
+
+  // Move reset modal to body
+  $('#resetDataModal').appendTo('body');
+
+  $(document).on('click', '.btn-reset-data', function() {
+    resetTarget = $(this).data('target');
+    var label = $(this).data('label');
+    var count = $(this).data('count');
+
+    $('#resetTargetLabel').text(label);
+    $('#resetTargetCount').text(count);
+    $('#resetPassword').val('').removeClass('is-invalid');
+    $('#resetPasswordError').text('');
+    $('#resetResult').hide();
+    $('#btnConfirmReset').prop('disabled', false).html('<i class="fas fa-redo-alt"></i> Ya, Reset Data');
+
+    $('#resetDataModal').modal('show');
+  });
+
+  $('#btnConfirmReset').on('click', function() {
+    var btn = $(this);
+    var password = $('#resetPassword').val().trim();
+
+    if (!password) {
+      $('#resetPassword').addClass('is-invalid');
+      $('#resetPasswordError').text('Password wajib diisi.').show();
+      return;
+    }
+
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Memproses...');
+    $('#resetPassword').removeClass('is-invalid');
+    $('#resetResult').hide();
+
+    $.ajax({
+      url: '<?= base_url('admin/settings/reset-data') ?>',
+      method: 'POST',
+      data: {
+        '<?= csrf_token() ?>': '<?= csrf_hash() ?>',
+        target: resetTarget,
+        password: password
+      },
+      dataType: 'json',
+      success: function(res) {
+        if (res.success) {
+          $('#resetResult').removeClass('alert-danger').addClass('alert alert-success')
+            .html('<i class="fas fa-check-circle"></i> ' + res.message).show();
+          btn.html('<i class="fas fa-check"></i> Berhasil');
+          // Reload page after 1.5s
+          setTimeout(function() {
+            window.location.href = '<?= base_url('admin/settings') ?>?tab=storage';
+          }, 1500);
+        } else {
+          $('#resetPassword').addClass('is-invalid');
+          $('#resetPasswordError').text(res.message).show();
+          btn.prop('disabled', false).html('<i class="fas fa-redo-alt"></i> Ya, Reset Data');
+        }
+      },
+      error: function() {
+        $('#resetResult').removeClass('alert-success').addClass('alert alert-danger')
+          .html('<i class="fas fa-times-circle"></i> Terjadi kesalahan. Silakan coba lagi.').show();
+        btn.prop('disabled', false).html('<i class="fas fa-redo-alt"></i> Ya, Reset Data');
+      }
+    });
   });
 });
 </script>
