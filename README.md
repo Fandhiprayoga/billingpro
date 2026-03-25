@@ -138,6 +138,85 @@ Arahkan document root web server ke folder `public/` pada project, **bukan** ke 
 </VirtualHost>
 ```
 
+## Instalasi dengan Docker
+
+Sebagai alternatif instalasi manual, project ini menyediakan konfigurasi Docker lengkap dengan 3 service: aplikasi (PHP 8.2 + Apache), database (MariaDB 10.11), dan phpMyAdmin.
+
+### Prasyarat
+
+- [Docker](https://docs.docker.com/get-docker/) dan [Docker Compose](https://docs.docker.com/compose/install/) terinstal
+
+### Arsitektur Container
+
+| Service | Container | Image | Port |
+|---------|-----------|-------|------|
+| **app** | `app-billingpro` | PHP 8.2 + Apache | `8080` |
+| **billingpro-mysql** | `billingpro_mariadb` | MariaDB 10.11 | `3306` |
+| **phpmyadmin** | `pma_billingpro` | phpMyAdmin | `8081` |
+
+### Langkah Instalasi
+
+**1. Konfigurasi Environment**
+
+```bash
+cp env .env
+```
+
+Edit `.env` untuk Docker:
+
+```env
+CI_ENVIRONMENT = development
+
+app.baseURL = 'http://localhost:8080/'
+
+database.default.hostname = billingpro-mysql
+database.default.database = billingpro
+database.default.username = user
+database.default.password = password
+database.default.DBDriver = MySQLi
+database.default.port = 3306
+```
+
+> **Penting:** Hostname harus menggunakan nama service Docker (`billingpro-mysql`), bukan `localhost`.
+
+**2. Build & Jalankan**
+
+```bash
+docker compose up --build -d
+```
+
+**3. Install Dependencies**
+
+```bash
+docker exec app-billingpro composer install
+```
+
+**4. Migrasi & Seeder**
+
+```bash
+docker exec app-billingpro php spark migrate --all
+docker exec app-billingpro php spark db:seed UserSeeder
+docker exec app-billingpro php spark db:seed PlanSeeder
+```
+
+**5. Akses Aplikasi**
+
+| Layanan | URL |
+|---------|-----|
+| Aplikasi | http://localhost:8080 |
+| phpMyAdmin | http://localhost:8081 |
+
+### Perintah Docker Berguna
+
+```bash
+docker compose ps                          # Cek status container
+docker compose logs -f app                 # Log aplikasi
+docker exec -it app-billingpro bash        # Shell container
+docker exec app-billingpro php spark ...   # Jalankan perintah spark
+docker compose down                        # Hentikan container
+docker compose down -v                     # Hentikan + hapus volume (reset DB)
+```
+
 ## API Endpoints
 
 Aplikasi menyediakan API publik (tanpa autentikasi) untuk integrasi dengan aplikasi POS/Web eksternal:
