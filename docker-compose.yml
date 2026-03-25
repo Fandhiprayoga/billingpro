@@ -1,0 +1,53 @@
+services:
+  app:
+    container_name: app-billingpro
+    build: .
+    working_dir: /var/www/html/
+    env_file:
+      - .env
+    volumes:
+      - .:/var/www/html/
+    ports:
+      - 8080:80
+    command: apache2-foreground
+    networks:
+      - billingpro-network
+    depends_on:
+      - billingpro-mysql
+  billingpro-mysql:
+    container_name: billingpro_mariadb
+    image: 'mariadb:10.11'
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: 'password'
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_DATABASE: 'billingpro'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    volumes:
+      - 'billingpro-mysql:/var/lib/mysql'
+    networks:
+      - billingpro-network
+  phpmyadmin:
+    container_name: pma_billingpro
+    image: phpmyadmin
+    restart: always
+    depends_on:
+      - billingpro-mysql
+    ports:
+      - 8081:80
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=billingpro-mysql
+      - PMA_PORT=3306
+      - UPLOAD_LIMIT=1024000000k
+    networks:
+      - billingpro-network
+networks:
+  billingpro-network:
+    driver: bridge
+volumes:
+  billingpro-mysql:
+    driver: local

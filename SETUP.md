@@ -81,6 +81,106 @@ php spark serve
 
 Akses di browser: `http://localhost:8080`
 
+---
+
+## Instalasi dengan Docker (Containerisasi)
+
+Sebagai alternatif instalasi manual, project ini sudah menyediakan konfigurasi Docker lengkap.
+
+### Prasyarat
+
+- [Docker](https://docs.docker.com/get-docker/) dan [Docker Compose](https://docs.docker.com/compose/install/) sudah terinstal
+
+### Arsitektur Container
+
+| Service | Container | Image | Port | Deskripsi |
+|---------|-----------|-------|------|-----------|
+| **app** | `app-billingpro` | PHP 8.2 + Apache (build dari Dockerfile) | `8080:80` | Aplikasi CodeIgniter 4 |
+| **billingpro-mysql** | `billingpro_mariadb` | MariaDB 10.11 | `3306:3306` | Database MySQL |
+| **phpmyadmin** | `pma_billingpro` | phpMyAdmin (latest) | `8081:80` | Database management UI |
+
+### 1. Konfigurasi Environment
+
+Copy file `env` menjadi `.env` dan sesuaikan untuk Docker:
+
+```env
+CI_ENVIRONMENT = development
+
+app.baseURL = 'http://localhost:8080/'
+
+database.default.hostname = billingpro-mysql
+database.default.database = billingpro
+database.default.username = user
+database.default.password = password
+database.default.DBDriver = MySQLi
+database.default.port = 3306
+```
+
+> **Penting:** `database.default.hostname` harus menggunakan nama service Docker (`billingpro-mysql`), bukan `localhost`.
+
+### 2. Build & Jalankan Container
+
+```bash
+docker compose up --build -d
+```
+
+Tunggu hingga semua container berjalan. Cek status:
+
+```bash
+docker compose ps
+```
+
+### 3. Install Dependencies (jika menggunakan volume mount)
+
+Karena volume mount akan menimpa folder `vendor/` di container, jalankan composer install di dalam container:
+
+```bash
+docker exec app-billingpro composer install
+```
+
+### 4. Jalankan Migration
+
+```bash
+docker exec app-billingpro php spark migrate --all
+```
+
+### 5. Jalankan Seeder
+
+```bash
+docker exec app-billingpro php spark db:seed UserSeeder
+docker exec app-billingpro php spark db:seed PlanSeeder
+```
+
+### 6. Akses Aplikasi
+
+| Layanan | URL |
+|---------|-----|
+| Aplikasi | [http://localhost:8080](http://localhost:8080) |
+| phpMyAdmin | [http://localhost:8081](http://localhost:8081) |
+
+> Login phpMyAdmin: Server `billingpro-mysql`, User `user`, Password `password`
+
+### Perintah Docker Berguna
+
+```bash
+# Melihat log aplikasi
+docker compose logs -f app
+
+# Masuk ke shell container
+docker exec -it app-billingpro bash
+
+# Menjalankan perintah spark
+docker exec app-billingpro php spark <command>
+
+# Menghentikan semua container
+docker compose down
+
+# Menghentikan dan hapus volume (reset database)
+docker compose down -v
+```
+
+---
+
 ## Akun Default
 
 | Role | Email | Password |
