@@ -37,6 +37,7 @@
                 <th>No. Order</th>
                 <th>Paket</th>
                 <th>Jumlah</th>
+                <th>Kode Unik</th>
                 <th>Status</th>
                 <th>Tanggal</th>
                 <th width="100">Aksi</th>
@@ -107,6 +108,9 @@ $(function() {
       },
       { data: 'amount',
         render: function(data) { return formatRupiah(data); }
+      },
+      { data: 'unique_code',
+        render: function(data) { return '<span class="text-info font-weight-bold">Rp ' + parseInt(data || 0).toLocaleString('id-ID') + '</span>'; }
       },
       { data: 'status',
         render: function(data) {

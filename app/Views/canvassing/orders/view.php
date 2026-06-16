@@ -26,7 +26,16 @@ $statusLabel = match($order->status) {
           <tr><td width="180"><strong>No. Order</strong></td><td><code><?= esc($order->order_number) ?></code></td></tr>
           <tr><td><strong>Customer</strong></td><td><?= esc($order->username) ?></td></tr>
           <tr><td><strong>Paket</strong></td><td><?= esc($order->plan_name) ?> (<?= $order->duration_days ?> hari)</td></tr>
-          <tr><td><strong>Jumlah</strong></td><td><strong class="text-primary">Rp <?= number_format($order->amount, 0, ',', '.') ?></strong></td></tr>
+          <tr><td><strong>Jumlah</strong></td><td>
+              <strong class="text-primary">Rp <?= number_format($order->amount, 0, ',', '.') ?></strong>
+              <?php if (!empty($order->unique_code)): ?>
+                <br>
+                <small class="text-muted">
+                  (Harga Paket: Rp <?= number_format($order->amount - $order->unique_code, 0, ',', '.') ?>
+                  + <span class="text-info font-weight-bold">Kode Unik: Rp <?= number_format($order->unique_code, 0, ',', '.') ?></span>)
+                </small>
+              <?php endif; ?>
+          </td></tr>
           <tr><td><strong>Metode Bayar</strong></td><td><?= ucfirst($order->payment_method) ?></td></tr>
           <tr><td><strong>Status</strong></td><td><span class="badge <?= $statusBadge ?>"><?= $statusLabel ?></span></td></tr>
           <tr><td><strong>Tanggal Order</strong></td><td><?= date('d/m/Y H:i', strtotime($order->created_at)) ?></td></tr>

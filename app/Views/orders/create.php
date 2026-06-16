@@ -59,6 +59,13 @@
                       placeholder="Catatan tambahan untuk order"><?= old('notes') ?></textarea>
           </div>
 
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Kode Unik Pembayaran:</strong>
+            Saat order dibuat, sistem akan menambahkan <strong>kode unik acak (Rp 1 - Rp 500)</strong> ke nominal tagihan.
+            Kode unik ini berfungsi sebagai kode verifikasi untuk memudahkan pencocokan pembayaran.
+          </div>
+
           <div class="form-group text-right">
             <a href="<?= base_url('admin/orders') ?>" class="btn btn-secondary mr-1">Batal</a>
             <button type="submit" class="btn btn-primary">

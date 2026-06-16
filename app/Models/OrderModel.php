@@ -9,7 +9,7 @@ class OrderModel extends Model
     protected $table         = 'orders';
     protected $primaryKey    = 'id';
     protected $allowedFields = [
-        'order_number', 'type', 'user_id', 'plan_id', 'license_id', 'amount',
+        'order_number', 'type', 'user_id', 'plan_id', 'license_id', 'amount', 'unique_code',
         'status', 'payment_method', 'payment_reference',
         'paid_at', 'rejected_at', 'notes', 'admin_notes', 'created_by_manager_id',
     ];
@@ -32,6 +32,14 @@ class OrderModel extends Model
         }
 
         return $number;
+    }
+
+    /**
+     * Generate a random unique code (1-500) for order amount verification.
+     */
+    public function generateUniqueCode(): int
+    {
+        return random_int(1, 500);
     }
 
     /**

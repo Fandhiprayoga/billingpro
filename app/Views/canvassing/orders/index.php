@@ -33,6 +33,7 @@
                 <th>Customer</th>
                 <th>Paket</th>
                 <th>Jumlah</th>
+                <th>Kode Unik</th>
                 <th>Status</th>
                 <th>Tanggal</th>
                 <th width="130">Aksi</th>
@@ -84,6 +85,7 @@ $(function() {
       { data: 'username' },
       { data: 'plan_name', render: function(d) { return d || '-'; } },
       { data: 'amount', render: function(d) { return formatRupiah(d); } },
+      { data: 'unique_code', render: function(d) { return '<span class="text-info font-weight-bold">Rp ' + parseInt(d || 0).toLocaleString('id-ID') + '</span>'; } },
       { data: 'status', render: function(d) {
           return '<span class="badge ' + (statusBadges[d]||'badge-light') + '">' + (statusLabels[d]||d) + '</span>';
         }

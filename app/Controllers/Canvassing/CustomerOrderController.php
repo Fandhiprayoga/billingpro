@@ -84,9 +84,10 @@ class CustomerOrderController extends BaseController
                 2 => 'users.username',
                 3 => 'plans.name',
                 4 => 'orders.amount',
-                5 => 'orders.status',
-                6 => 'orders.created_at',
-                7 => '', // actions
+                5 => 'orders.unique_code',
+                6 => 'orders.status',
+                7 => 'orders.created_at',
+                8 => '', // actions
             ])
             ->process();
 

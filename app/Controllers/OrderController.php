@@ -84,10 +84,11 @@ class OrderController extends BaseController
                 2 => 'users.username',
                 3 => 'plans.name',
                 4 => 'orders.amount',
-                5 => 'orders.payment_method',
-                6 => 'orders.status',
-                7 => 'orders.created_at',
-                8 => '', // actions
+                5 => 'orders.unique_code',
+                6 => 'orders.payment_method',
+                7 => 'orders.status',
+                8 => 'orders.created_at',
+                9 => '', // actions
             ])
             ->process();
 

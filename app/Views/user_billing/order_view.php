@@ -35,7 +35,16 @@ $statusLabel = match($order->status) {
           </tr>
           <tr>
             <td><strong>Jumlah</strong></td>
-            <td><strong class="text-primary">Rp <?= number_format($order->amount, 0, ',', '.') ?></strong></td>
+            <td>
+              <strong class="text-primary">Rp <?= number_format($order->amount, 0, ',', '.') ?></strong>
+              <?php if (!empty($order->unique_code)): ?>
+                <br>
+                <small class="text-muted">
+                  (Harga Paket: Rp <?= number_format($order->amount - $order->unique_code, 0, ',', '.') ?>
+                  + <span class="text-info font-weight-bold">Kode Unik: Rp <?= number_format($order->unique_code, 0, ',', '.') ?></span>)
+                </small>
+              <?php endif; ?>
+            </td>
           </tr>
           <tr>
             <td><strong>Metode Bayar</strong></td>
@@ -260,7 +269,10 @@ $statusLabel = match($order->status) {
         </div>
         <div class="alert alert-info mb-0">
           <i class="fas fa-info-circle"></i>
-          <small>Transfer sesuai jumlah tagihan <strong>Rp <?= number_format($order->amount, 0, ',', '.') ?></strong>, lalu upload bukti bayar.</small>
+          <small>Transfer sesuai jumlah tagihan <strong class="text-primary">Rp <?= number_format($order->amount, 0, ',', '.') ?></strong>, lalu upload bukti bayar.</small>
+          <?php if (!empty($order->unique_code)): ?>
+            <br><small class="text-muted mt-1 d-block">Termasuk kode unik verifikasi <strong class="text-info">Rp <?= number_format($order->unique_code, 0, ',', '.') ?></strong> — harap transfer sesuai nominal di atas.</small>
+          <?php endif; ?>
         </div>
       </div>
     </div>

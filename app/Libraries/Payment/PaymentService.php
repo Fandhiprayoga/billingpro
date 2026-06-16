@@ -85,13 +85,16 @@ class PaymentService
             return ['success' => false, 'message' => 'Paket tidak ditemukan.'];
         }
 
+        $uniqueCode = $this->orderModel->generateUniqueCode();
+
         $orderData = [
             'order_number'   => $this->orderModel->generateOrderNumber(),
             'type'           => $type,
             'user_id'        => $userId,
             'plan_id'        => $planId,
             'license_id'     => $licenseId,
-            'amount'         => $plan->price,
+            'amount'         => $plan->price + $uniqueCode,
+            'unique_code'    => $uniqueCode,
             'status'         => 'pending',
             'payment_method' => $paymentMethod,
             'notes'          => $notes,
@@ -106,6 +109,8 @@ class PaymentService
             'data'    => [
                 'order_id'     => $orderId,
                 'order_number' => $orderData['order_number'],
+                'amount'       => $orderData['amount'],
+                'unique_code'  => $uniqueCode,
             ],
         ];
     }

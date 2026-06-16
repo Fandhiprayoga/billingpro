@@ -8,6 +8,9 @@
         <div class="alert alert-info">
           <strong>Order:</strong> <?= esc($order->order_number) ?><br>
           <strong>Jumlah yang harus dibayar:</strong> <span class="h5">Rp <?= number_format($order->amount, 0, ',', '.') ?></span>
+          <?php if (!empty($order->unique_code)): ?>
+            <br><small class="text-muted">(Termasuk kode unik verifikasi <strong class="text-info">Rp <?= number_format($order->unique_code, 0, ',', '.') ?></strong>)</small>
+          <?php endif; ?>
         </div>
 
         <?php if (!empty($bankInfo['bank_name'])): ?>

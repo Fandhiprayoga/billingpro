@@ -39,7 +39,16 @@ $statusLabel = match($order->status) {
           </tr>
           <tr>
             <td><strong>Jumlah</strong></td>
-            <td><strong class="text-primary">Rp <?= number_format($order->amount, 0, ',', '.') ?></strong></td>
+            <td>
+              <strong class="text-primary">Rp <?= number_format($order->amount, 0, ',', '.') ?></strong>
+              <?php if (!empty($order->unique_code)): ?>
+                <br>
+                <small class="text-muted">
+                  (Harga Paket: Rp <?= number_format($order->amount - $order->unique_code, 0, ',', '.') ?>
+                  + <span class="text-info font-weight-bold">Kode Unik: Rp <?= number_format($order->unique_code, 0, ',', '.') ?></span>)
+                </small>
+              <?php endif; ?>
+            </td>
           </tr>
           <tr>
             <td><strong>Metode Bayar</strong></td>

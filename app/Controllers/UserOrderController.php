@@ -89,9 +89,10 @@ class UserOrderController extends BaseController
                 1 => 'orders.order_number',
                 2 => 'plans.name',
                 3 => 'orders.amount',
-                4 => 'orders.status',
-                5 => 'orders.created_at',
-                6 => '', // actions
+                4 => 'orders.unique_code',
+                5 => 'orders.status',
+                6 => 'orders.created_at',
+                7 => '', // actions
             ])
             ->process();
 
